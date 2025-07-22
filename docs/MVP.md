@@ -62,11 +62,21 @@ Deliver a functional, end-to-end MVP of the eDrop Warehouse Management System th
 ---
 
 ## Out of Scope for MVP
-- Full automation of SmartPut/SmartSlot logic (manual for MVP)
-- AI camera validation (manual photo upload if needed)
-- Advanced gamification (leaderboards, complex rewards)
+- Full automation of SmartPut/SmartSlot logic (manual for MVP; **AI/automation as stretch goal**)
+- AI camera validation (manual photo upload if needed; **AI validation as stretch goal**)
+- Advanced gamification (leaderboards, complex rewards; **can be added post-MVP**)
 - Payment gateway integration (simulate payments)
 - Advanced notifications (basic email/app notifications only)
+
+---
+
+## Stretch Goals / Phase 2 (Optional for MVP)
+
+- **AI Camera Validation:** Integrate AI-based crate content validation and auto-discrepancy flagging.
+- **SmartPut/SmartSlot Automation:** Implement AI/algorithm-driven bin assignment and route/slot optimization.
+- **Advanced Gamification:** Add leaderboards, complex rewards, and community challenges.
+- **Automated Exception Handling:** Use AI to predict and flag potential issues in inventory or delivery.
+- **Predictive Analytics:** Use AI/ML for demand forecasting and inventory optimization.
 
 ---
 
@@ -93,6 +103,7 @@ Deliver a functional, end-to-end MVP of the eDrop Warehouse Management System th
 8. **Dashboards & Reporting** (1 week)
 9. **Testing, Bug Fixes, and Documentation** (1 week)
 10. **Pilot Deployment** (1 week)
+11. **(Optional) AI & Automation Integration** (2 weeks, if time/resources allow)
 
 ---
 
@@ -102,6 +113,7 @@ Deliver a functional, end-to-end MVP of the eDrop Warehouse Management System th
 - At least one RWA, one vendor, and one delivery agent can complete the full cycle
 - Basic dashboards and sustainability metrics visible to admin
 - Feedback from pilot users collected for next iteration
+- **(Optional) AI/automation features piloted and evaluated**
 
 ---
 
@@ -120,6 +132,7 @@ Deliver a functional, end-to-end MVP of the eDrop Warehouse Management System th
 | Dashboards & Reporting        | Not Started|            |                              |
 | Testing & Documentation       | Not Started|            |                              |
 | Pilot Deployment              | Not Started|            |                              |
+| AI & Automation (Stretch)     | Not Started|            | Optional, post-core MVP      |
 
 _Update this table as you progress._
 
@@ -130,5 +143,4 @@ _Update this table as you progress._
 - Finalize MVP wireframes and data models
 - Assign tasks and set up project management board
 - Start with user/auth module and basic data models
-
----
+- **Plan for AI/automation integration as a stretch goal**
