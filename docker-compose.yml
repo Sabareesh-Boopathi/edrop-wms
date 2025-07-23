@@ -1,0 +1,43 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      # Re-add this volume for live code reloading
+      - ./backend:/usr/src/app
+      - ./test-reports:/usr/src/app/test-reports
+    env_file:
+      - ./.env
+    environment:
+      - PYTHONPATH=/usr/src/app
+    depends_on:
+      - postgres
+    networks:
+      - edrop-net
+    # Update the entrypoint to the new, non-conflicting location
+    entrypoint: ["/usr/local/bin/wait-for-postgres.sh"]
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_DATABASE}
+      - POSTGRES_TEST_DB=${DB_TEST_DATABASE}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-db:/var/lib/postgresql/data
+      - ./docker/postgres:/docker-entrypoint-initdb.d
+    networks:
+      - edrop-net
+
+volumes:
+  postgres-db:
+
+networks:
+  edrop-net:
+    driver: bridge

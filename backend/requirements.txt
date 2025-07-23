@@ -7,3 +7,11 @@ alembic
 python-dotenv
 passlib[bcrypt]
 email-validator
+python-jose[cryptography]
+pydantic-settings
+python-multipart
+
+# --- Testing ---
+pytest
+httpx
+pytest-html

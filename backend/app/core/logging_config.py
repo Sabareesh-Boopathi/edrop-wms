@@ -13,11 +13,29 @@ LOGGING_CONFIG = {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "default",
+            "stream": "ext://sys.stdout",
+        },
+    },
+    "loggers": {
+        "app": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "uvicorn.access": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "uvicorn.error": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
         },
     },
     "root": {
-        "level": "INFO",
         "handlers": ["console"],
+        "level": "WARNING",
     },
 }
 

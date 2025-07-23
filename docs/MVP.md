@@ -123,18 +123,18 @@ Deliver a functional, end-to-end MVP of the eDrop Warehouse Management System th
 
 | Module                        | Status      | Owner      | Notes                                      |
 |-------------------------------|-------------|------------|--------------------------------------------|
-| Project Setup                 | ✅ Completed |            | Docker, Python structure, Alembic          |
+| Project Setup                 | ✅ Completed |            | Docker, Python structure, Alembic, Test DB |
 | Core Data Models              | ✅ Completed |            | All DB tables created via Alembic          |
-| User & Role Management        | 🟡 In Progress |            | Create endpoint done. Login/auth next.     |
-| Warehouse Management          | ⚪ Not Started |            |                                            |
-| Customer & Flat Management    | ⚪ Not Started |            |                                            |
-| Vendor & Product Management   | ⚪ Not Started |            |                                            |
+| User & Role Management        | 🟡 In Progress |            | Backend API complete. Frontend pending.    |
+| Warehouse Management          | 🟡 In Progress |            | Backend API complete. Frontend pending.    |
+| Customer & Flat Management    | 🟡 In Progress |            | Backend API complete. Frontend pending.    |
+| Vendor & Product Management   | 🟡 In Progress |            | Backend API complete. Frontend pending.    |
 | Marketplace & Order Flow      | ⚪ Not Started |            |                                            |
 | Inbound/Outbound & Inventory  | ⚪ Not Started |            |                                            |
 | Fleet & Delivery Management   | ⚪ Not Started |            |                                            |
 | CO₂ & Gamification            | ⚪ Not Started |            |                                            |
 | Dashboards & Reporting        | ⚪ Not Started |            |                                            |
-| Testing & Documentation       | ⚪ Not Started |            |                                            |
+| Testing & Documentation       | 🟡 In Progress |            | Initial test suite for all models created. |
 | Pilot Deployment              | ⚪ Not Started |            |                                            |
 | AI & Automation (Stretch)     | ⚪ Not Started |            | Optional, post-core MVP                    |
 
