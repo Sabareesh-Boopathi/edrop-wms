@@ -142,8 +142,17 @@ _Update this table as you progress._
 
 ---
 
+## ✅ Completed Initial Steps
+
+- Finalized core data models and database schema via Alembic.
+- Set up the project structure with Docker, FastAPI, and a test database.
+- Implemented the backend APIs for User, Customer, Vendor, Product, and Warehouse management.
+- Created the initial test suite structure for all core models.
+
+---
+
 ## 👉 Next Steps
 
-- Finalize MVP wireframes and data models
-- Assign tasks and set up project management board
-- Start with user/auth module and basic data models
+- **Stabilize Backend:** Resolve all failures in the test suite to ensure the existing APIs are robust.
+- **Begin Frontend Development:** Start building the frontend application, focusing first on the user login and registration flow to connect with the completed auth API.
+- **Implement Order Flow:** Begin backend development for the "Marketplace & Order Flow" module, allowing customers to
