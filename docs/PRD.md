@@ -1,194 +1,139 @@
-# eDrop Warehouse Management System (WMS) – Product Requirements Document
+# ✨ eDrop Warehouse Management System (WMS) – Product Requirements Document
 
-## 1. Purpose
+**Version:** 2.0
+**Date:** July 23, 2025
+**Status:** In Development
 
-To deliver a unified, scalable, and sustainable WMS for eDrop, supporting vendor-agnostic inbound/outbound flows, crate/parcel tracking, customer/flat management, marketplace integration, delivery fleet management, CO₂ tracking, and gamification. The system will optimize warehouse and delivery operations, provide transparency to all stakeholders, and drive sustainability goals.
+## 1. 🎯 Purpose & Vision
 
----
-
-## 2. Scope
-
-### In-Scope
-- Inbound receiving, validation, and racking (SKU and household/flat-based)
-- Storage, bin assignment, and inventory management
-- Outbound picking, UoD crate orchestration, conveyor logic
-- AI-based final quality validation and crate snapshot for customers
-- Customer and flat (apartment) data management
-- Vendor, SKU, and order management
-- Marketplace (e-commerce) integration: vendor product listing, commission, order flow
-- CO₂ calculation and gamification: sustainability tracking, user engagement
-- Delivery fleet management: agent, vehicle, route, and performance tracking
-- Hardware integration (barcode/QR, thermal printers, AI camera)
-- Real-time dashboards, notifications, and reporting
-- Audit trails, compliance, and system health monitoring
-
-### Out-of-Scope
-- Consumer-facing order placement (handled by main platform, except for marketplace integration)
+To create a state-of-the-art, scalable Warehouse Management System (WMS) that serves as the operational backbone for eDrop's hyperlocal delivery network. The vision is to build a system that not only optimizes logistics but also champions sustainability, engages communities, and provides a seamless experience for all stakeholders—from vendors to the end customer's doorstep.
 
 ---
 
-## 3. Tech Stack
+## 2. 🛠️ Technology Ecosystem
 
-| Layer         | Technology             | Notes                                  |
-|---------------|------------------------|----------------------------------------|
-| Web Frontend  | React.js               | Dashboard, marketplace, ops            |
-| Mobile App    | Flutter                | Ops, scanning, delivery, gamification  |
-| Backend API   | Node.js/Express        | RESTful APIs, business logic           |
-| Optimization  | Python (optional)      | SmartPut, SmartSlot, AI validation     |
-| Database      | PostgreSQL             | Relational, supports all entities      |
-| Cache/Queue   | Redis                  | Real-time events, queues               |
-| DevOps        | Docker, GitHub Actions | CI/CD, containerization                |
-| Monitoring    | Prometheus, Grafana    | Metrics, dashboards                    |
-| Error Tracking| Sentry (self-hosted)   | Error monitoring                       |
-| Hardware      | Barcode/QR plugins     | Flutter: `flutter_barcode_scanner`, `qr_code_scanner`<br>Node: `node-thermal-printer` |
-| AI Camera     | OpenCV, TensorFlow     | For crate content validation           |
-| Security      | OAuth2/JWT, RBAC       | Open source libraries                  |
+This outlines the complete technical stack chosen to build and run the eDrop WMS.
 
----
-
-## 4. Functional Requirements
-
-### 4.1. Customer & Flat (Apartment) Management
-
-- Store customer profiles, contact info, delivery preferences
-- Map orders to flats/units and RWA/association
-- Household-based order bundling and tracking
-
-### 4.2. Marketplace (E-commerce) Integration
-
-- Vendor product listing and management
-- Product catalog, search, and filtering
-- Commission calculation and settlement
-- Order placement, payment, and status tracking
-- Vendor dashboard for sales, commission, and inventory
-
-### 4.3. Inbound Receiving & Validation
-
-- Vendor drop, manifest validation, and discrepancy flagging
-- SmartPut bin assignment (SKU/flat-based)
-- Real-time vendor notification
-
-### 4.4. Storage & Inventory
-
-- Real-time inventory tracking (SKU, crate, parcel, location)
-- Crate lifecycle and maintenance
-- Bin management with QR code scanning
-
-### 4.5. Outbound Picking & Conveyor Orchestration
-
-- SmartSlot pick lists by route/slot
-- UoD crate conveyor orchestration (dynamic lane bypass)
-- Mobile scanning for pick confirmation
-
-### 4.6. Final Quality & AI Camera Validation
-
-- Overhead camera and AI for crate content validation
-- Crate snapshot sent to customer before delivery
-
-### 4.7. Dispatch & Handoff
-
-- Label printing (barcode/QR) for each crate
-- Agent scan-out and real-time delivery system update
-
-### 4.8. Returns & Exceptions
-
-- Returns processing, inventory update, vendor/customer notification
-- Exception logging and automated alerts
-
-### 4.9. Delivery Fleet Management
-
-- Agent and vehicle assignment and tracking
-- Route optimization and SmartSlot integration
-- Fleet performance analytics (on-time, missed, delayed deliveries)
-- Maintenance and compliance logs
-
-### 4.10. CO₂ Calculation & Gamification
-
-- CO₂ savings calculation per delivery, crate, and route
-- ESG dashboard for RWAs, vendors, and customers
-- Gamification: badges, leaderboards, rewards for green actions (e.g., crate returns, consolidated deliveries)
-- Customer and vendor engagement via app notifications
-
-### 4.11. Reporting & Analytics
-
-- Operational dashboards (inbound/outbound, inventory, crate utilization)
-- Marketplace analytics (sales, commission, vendor performance)
-- Fleet analytics (delivery times, agent performance)
-- CO₂ and sustainability reports
-- Audit logs and compliance reports
+| Layer          | Technology             | Purpose & Rationale                                          |
+|----------------|------------------------|--------------------------------------------------------------|
+| 🐍 **Backend**   | Python / FastAPI       | High-performance, modern, and ideal for future AI integration. |
+| 🐘 **Database**   | PostgreSQL             | Robust, reliable, and excellent for complex relational data.   |
+| ⚛️ **Web App**    | React.js               | Industry standard for building responsive, interactive UIs.    |
+| 🐦 **Mobile App**  | Flutter                | Cross-platform for iOS/Android, enabling rapid development.    |
+| ⚡ **Cache**      | Redis                  | For session storage, caching frequent queries, and rate limiting.|
+| 🔄 **Queue**       | Redis / Celery         | To manage background jobs like notifications and report generation.|
+| 🐳 **DevOps**      | Docker, GitHub Actions | For containerization, CI/CD, and ensuring consistent environments.|
+| 📊 **Monitoring** | Prometheus, Grafana    | For real-time system health monitoring and performance dashboards.|
+| 🔑 **Security**   | OAuth2 / JWT, RBAC     | Standard token-based authentication and role-based access control.|
+| 📷 **AI/ML**     | OpenCV, PyTorch        | For computer vision tasks like crate content validation.       |
 
 ---
 
-## 5. Non-Functional Requirements
+## 3. 🏛️ System Architecture
 
-- Scalability: Multi-warehouse, multi-RWA, multi-vendor
-- Reliability: 99.9% uptime, robust error handling
-- Security: Data encryption, access controls, audit trails
-- Performance: Sub-second scan-to-update latency
-- Usability: Mobile-first UI, minimal training required
+The system is designed as a decoupled, service-oriented architecture to ensure scalability and maintainability.
 
----
-
-## 6. User Roles
-
-- Warehouse Operator
-- Warehouse Supervisor
-- Vendor
-- Customer
-- Delivery Agent
-- Fleet Manager
-- Admin
-
----
-
-## 7. User Stories
-
-### Marketplace
-- As a customer, I can browse and order products from multiple vendors.
-- As a vendor, I can manage my product listings and view commission reports.
-
-### CO₂ & Gamification
-- As a customer, I can view my CO₂ savings and earn badges for sustainable actions.
-- As an RWA, I can see the community’s green impact.
-
-### Fleet Management
-- As a fleet manager, I can assign agents and vehicles to routes and monitor delivery status.
+```
++---------------------+      +----------------------+
+|   React Web App     |      |  Flutter Mobile App  |
+| (Admin/Vendor/Ops)  |      | (Ops/Delivery/User)  |
++---------------------+      +----------------------+
+          |                            |
+          +--------------+-------------+
+                         |
+                         v
++----------------------------------------------------+
+|           🐍 FastAPI Backend API (Python)           |
+| (Business Logic, Auth, AI/ML, Notifications)       |
++----------------------------------------------------+
+                         |
+           +-------------+----------------+
+           |             |                |
+           v             v                v
++----------------+ +-------------+ +----------------+
+| 🐘 PostgreSQL  | | ⚡ Redis     | |  📷 AI Camera  |
+| (Primary DB)   | | (Cache/Queue) | | (Validation)   |
++----------------+ +-------------+ +----------------+
+```
 
 ---
 
-## 8. Success Metrics
+## 4. 🧬 Core Data Models
 
-- Marketplace GMV and commission revenue
-- CO₂ savings per delivery and per RWA
-- Fleet on-time delivery rate
-- Crate loss/damage rate
-- Customer and vendor satisfaction (NPS, feedback)
+This is the blueprint for our database schema, representing the key entities of the system.
+
+#### 🏢 `RWA` (Resident Welfare Association / Community)
+*Represents a gated community or apartment complex.*
+- `id` (UUID, PK)
+- `name` (String)
+- `address` (Text)
+- `city` (String)
+
+#### 🏠 `Flat`
+*Represents a single household or unit within an RWA.*
+- `id` (UUID, PK)
+- `rwa_id` (FK to `RWA`)
+- `tower_block` (String, e.g., "A")
+- `flat_number` (String, e.g., "1204")
+
+#### 👤 `User`
+*The central authentication entity. All people interacting with the system are Users.*
+- `id` (UUID, PK)
+- `name` (String)
+- `email` (String, Unique)
+- `hashed_password` (String)
+- `role` (Enum: `admin`, `warehouse_operator`, `vendor`, `delivery_agent`, `customer`)
+- `is_active` (Boolean)
+
+#### 🧑‍🤝‍🧑 `Customer`
+*The profile for a customer, linked to a User and a Flat.*
+- `id` (UUID, PK)
+- `user_id` (FK to `User`)
+- `flat_id` (FK to `Flat`)
+- `phone_number` (String, Unique)
+
+#### 🏭 `Warehouse`
+*Represents a physical micro-hub or warehouse location.*
+- `id` (UUID, PK)
+- `name` (String)
+- `address` (Text)
+- `city` (String)
+- `manager_id` (FK to `User`, nullable)
+
+#### 📦 `Product`
+*An item sold by a vendor.*
+- `id` (UUID, PK)
+- `name` (String)
+- `sku` (String, Unique)
+- `price` (Decimal)
+- `vendor_id` (FK to `User` where role is `vendor`)
+
+#### 🛒 `Order`
+*A customer's order, containing multiple products.*
+- `id` (UUID, PK)
+- `customer_id` (FK to `Customer`)
+- `warehouse_id` (FK to `Warehouse`)
+- `status` (Enum: `pending`, `processing`, `out_for_delivery`, `delivered`, `cancelled`)
+- `total_amount` (Decimal)
+- `created_at` (Timestamp)
 
 ---
 
-## 9. Risks & Mitigation
+## 5. 📡 API Design Philosophy
 
-- Marketplace fraud: KYC, order validation, payment escrow
-- CO₂ miscalculation: Transparent formulas, regular audits
-- Fleet downtime: Backup vehicles, real-time alerts
-- Data privacy: GDPR compliance, secure storage
+Our API will be clean, predictable, and easy to use, following RESTful best practices.
 
----
+-   **Versioning:** All endpoints will be prefixed with `/api/v1/` to allow for future versions without breaking changes.
+-   **Authentication:** Secure endpoints will expect an `Authorization: Bearer <JWT_TOKEN>` header.
+-   **Data Format:** All request and response bodies will be in `JSON`.
+-   **Status Codes:** We will use standard HTTP status codes to indicate success or failure (e.g., `200 OK`, `201 Created`, `400 Bad Request`, `404 Not Found`, `403 Forbidden`).
+-   **Error Responses:** Failed requests will return a consistent JSON error object: `{"detail": "A clear, descriptive error message."}`.
 
-## 10. Implementation Plan
-
-1. Design and wireframe all modules (WMS, marketplace, fleet, CO₂/gamification)
-2. Develop backend, web, and mobile apps in parallel
-3. Integrate hardware and AI camera
-4. Pilot with one microhub, one RWA, and select vendors
-5. Iterate, scale, and roll out to additional locations
+#### Example: Customer Management (`/api/v1/customers`)
+- `POST /customers`: Create a new customer profile.
+- `GET /customers/{customer_id}`: Get details for a specific customer.
+- `PUT /customers/{customer_id}`: Update a customer's details.
 
 ---
 
-## 11. Documentation & Training
-
-- User manuals for all roles
-- API and integration docs
-- Training for ops, vendors, fleet, and customers
-
----
+*(The rest of the PRD sections like Functional Requirements, User Stories, etc., would follow, now built upon this solid architectural foundation.)*
