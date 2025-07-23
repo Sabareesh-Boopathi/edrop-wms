@@ -1,0 +1,9 @@
+# filepath: backend/requirements.txt
+fastapi
+uvicorn[standard]
+psycopg2-binary
+SQLAlchemy
+alembic
+python-dotenv
+passlib[bcrypt]
+email-validator
