@@ -15,5 +15,7 @@ class User(Base):
     role = Column(String(50), nullable=False)
     is_active = Column(Boolean(), default=True)
 
-    # Relationship to VendorProfile
-    vendor_profile = relationship("VendorProfile", back_populates="user", uselist=False)
+    # Relationships
+    customer = relationship("Customer", back_populates="user", uselist=False)
+    vendor = relationship("Vendor", back_populates="user", uselist=False) # Renamed from vendor_profile
+    warehouse_manager_for = relationship("Warehouse", back_populates="manager")

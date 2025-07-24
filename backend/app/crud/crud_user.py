@@ -17,7 +17,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             name=obj_in.name,
             hashed_password=get_password_hash(obj_in.password),
             role=obj_in.role,
-            is_active=obj_in.is_active,
+            is_active=obj_in.is_active
         )
         db.add(db_obj)
         db.commit()
@@ -42,5 +42,8 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             update_data["hashed_password"] = hashed_password
 
         return super().update(db, db_obj=db_obj, obj_in=update_data)
+
+    def is_active(self, user: User) -> bool:
+        return getattr(user, "is_active", True)
 
 user = CRUDUser(User)

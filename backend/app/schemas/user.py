@@ -23,6 +23,7 @@ class UserUpdate(BaseModel):
     name: str | None = None
     email: EmailStr | None = None
     password: str | None = None
+    is_active: bool | None = None
 
 # --- Read Schema ---
 # Properties to be returned by the API when reading a user.

@@ -125,16 +125,16 @@ Deliver a functional, end-to-end MVP of the eDrop Warehouse Management System th
 |-------------------------------|-------------|------------|--------------------------------------------|
 | Project Setup                 | ✅ Completed |            | Docker, Python structure, Alembic, Test DB |
 | Core Data Models              | ✅ Completed |            | All DB tables created via Alembic          |
-| User & Role Management        | 🟡 In Progress |            | Backend API complete. Frontend pending.    |
-| Warehouse Management          | 🟡 In Progress |            | Backend API complete. Frontend pending.    |
-| Customer & Flat Management    | 🟡 In Progress |            | Backend API complete. Frontend pending.    |
-| Vendor & Product Management   | 🟡 In Progress |            | Backend API complete. Frontend pending.    |
-| Marketplace & Order Flow      | ⚪ Not Started |            |                                            |
+| User & Role Management        | 🟢 Partially Completed |            | Backend API and test suite complete. Frontend pending.    |
+| Warehouse Management          | 🟢 Partially Completed |            | Backend API and test suite complete. Frontend pending.    |
+| Customer & Flat Management    | 🟢 Partially Completed |            | Backend API and test suite complete. Frontend pending.    |
+| Vendor & Product Management   | 🟢 Partially Completed |            | Backend API and test suite complete. Frontend pending.    |
+| Marketplace & Order Flow      | 🟢 Partially Completed |            | Backend API and test suite complete. Frontend pending.    |
 | Inbound/Outbound & Inventory  | ⚪ Not Started |            |                                            |
 | Fleet & Delivery Management   | ⚪ Not Started |            |                                            |
 | CO₂ & Gamification            | ⚪ Not Started |            |                                            |
 | Dashboards & Reporting        | ⚪ Not Started |            |                                            |
-| Testing & Documentation       | 🟡 In Progress |            | Initial test suite for all models created. |
+| Testing & Documentation       | ✅ Completed   |            | All backend tests passing. Documentation up to date. |
 | Pilot Deployment              | ⚪ Not Started |            |                                            |
 | AI & Automation (Stretch)     | ⚪ Not Started |            | Optional, post-core MVP                    |
 
@@ -153,6 +153,20 @@ _Update this table as you progress._
 
 ## 👉 Next Steps
 
-- **Stabilize Backend:** Resolve all failures in the test suite to ensure the existing APIs are robust.
-- **Begin Frontend Development:** Start building the frontend application, focusing first on the user login and registration flow to connect with the completed auth API.
-- **Implement Order Flow:** Begin backend development for the "Marketplace & Order Flow" module, allowing customers to
+- **Backend Complete:** All core backend APIs and test suite are passing. Frontend work is now the priority.
+- **Frontend Development:**
+    - Set up React.js project structure and connect to backend APIs.
+    - Implement user login, registration, and role-based dashboard flows.
+    - Build vendor/product management UI and customer/flat management screens.
+    - Integrate order placement, order tracking, and basic inventory views.
+    - Add error handling, loading states, and basic form validation.
+    - Prepare for mobile app integration (Flutter) after web flows are stable.
+- **Deployment Planning:**
+    - Prepare Docker setup for frontend and backend.
+    - Configure environment variables and secrets for production.
+    - Set up CI/CD pipeline (GitHub Actions) for automated builds and tests.
+    - Plan pilot deployment (staging environment, test users, feedback loop).
+- **Documentation & Testing:**
+    - Update API and frontend documentation as new features are added.
+    - Expand test coverage for frontend components and integration flows.
+    - Collect feedback from pilot users and iterate on UI/UX.

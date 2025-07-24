@@ -3,12 +3,9 @@ from dotenv import load_dotenv
 from urllib.parse import quote_plus  # <-- ADD THIS IMPORT
 
 from logging.config import fileConfig
-
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
-
 from alembic import context
-from app.db.base import Base  # Import your Base model
 
 # --- ADD THIS SECTION ---
 # Load environment variables from .env file
@@ -28,9 +25,26 @@ DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_DA
 # access to the values within the .ini file in use.
 config = context.config
 
-# Set the database URL in the config object, escaping the '%' for configparser.
-config.set_main_option("sqlalchemy.url", DATABASE_URL.replace("%", "%%")) # <-- CHANGE THIS LINE
+# --- THIS IS THE KEY MODIFICATION ---
+# Add project root to the Python path to allow imports from 'app'
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 
+# Import your app's Base model and the settings object
+from app.db.base import Base  # noqa
+from app.core.config import settings # noqa
+
+# --- THIS IS THE FIX ---
+# To prevent configparser from interpreting '%' as an interpolation character,
+# we must escape it by replacing it with '%%'.
+safe_database_url = settings.DATABASE_URL.replace("%", "%%")
+
+# Set the sqlalchemy.url in the config object programmatically.
+# This will override the value in alembic.ini, ensuring migrations
+# run against the correct database with the correctly encoded password.
+config.set_main_option("sqlalchemy.url", safe_database_url)
+# --- END OF FIX ---
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

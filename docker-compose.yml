@@ -17,8 +17,10 @@ services:
       - postgres
     networks:
       - edrop-net
-    # Update the entrypoint to the new, non-conflicting location
-    entrypoint: ["/usr/local/bin/wait-for-postgres.sh"]
+    # This entrypoint calls the script AND passes "postgres" as the first argument.
+    entrypoint: ["/usr/local/bin/wait-for-postgres.sh", "postgres"]
+    # This command is passed to the script after the database is ready.
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
   postgres:
     image: postgres:15-alpine
@@ -26,7 +28,7 @@ services:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_DB=${DB_DATABASE}
-      - POSTGRES_TEST_DB=${DB_TEST_DATABASE}
+      - DB_TEST_DATABASE=${DB_TEST_DATABASE}
     ports:
       - "5432:5432"
     volumes:

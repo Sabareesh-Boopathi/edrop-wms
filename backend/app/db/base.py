@@ -14,4 +14,4 @@ from app.models.warehouse import Warehouse
 from app.models.product import Product
 from app.models.order import Order
 from app.models.order_product import OrderProduct
-from app.models.vendor_profile import VendorProfile
+from app.models.vendor import Vendor
