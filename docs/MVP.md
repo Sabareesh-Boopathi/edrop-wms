@@ -131,7 +131,7 @@ Deliver a functional, end-to-end MVP of the eDrop Warehouse Management System th
 | Vendor & Product Management   | 🟢 Partially Completed |            | Backend API and test suite complete. Frontend pending.    |
 | Marketplace & Order Flow      | 🟢 Partially Completed |            | Backend API and test suite complete. Frontend pending.    |
 | Inbound/Outbound & Inventory  | ⚪ Not Started |            |                                            |
-| Fleet & Delivery Management   | ⚪ Not Started |            |                                            |
+| Fleet & Delivery Management   | 🟢 Partially Completed |            | Backend API complete. Frontend delivery tracking and fleet management UI added. |
 | CO₂ & Gamification            | ⚪ Not Started |            |                                            |
 | Dashboards & Reporting        | ⚪ Not Started |            |                                            |
 | Testing & Documentation       | ✅ Completed   |            | All backend tests passing. Documentation up to date. |
