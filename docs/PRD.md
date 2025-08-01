@@ -22,7 +22,7 @@ This outlines the complete technical stack chosen to build and run the eDrop WMS
 | 🐦 **Mobile App**  | Flutter                | Cross-platform for iOS/Android, enabling rapid development.    |
 | ⚡ **Cache**      | Redis                  | For session storage, caching frequent queries, and rate limiting.|
 | 🔄 **Queue**       | Redis / Celery         | To manage background jobs like notifications and report generation.|
-| 🐳 **DevOps**      | Docker, GitHub Actions | For containerization, CI/CD, and ensuring consistent environments. Test database is created on-the-fly by the Postgres container.|
+| 🐳 **DevOps**      | Docker, GitHub Actions | For containerization, CI/CD, and ensuring consistent environments.|
 | 📊 **Monitoring** | Prometheus, Grafana    | For real-time system health monitoring and performance dashboards.|
 | 🔑 **Security**   | OAuth2 / JWT, RBAC     | Standard token-based authentication and role-based access control.|
 | 📷 **AI/ML**     | OpenCV, PyTorch        | For computer vision tasks like crate content validation.       |

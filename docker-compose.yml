@@ -1,5 +1,9 @@
 services:
   backend:
+    # This entrypoint calls the script AND passes "postgres" as the first argument.
+    entrypoint: ["/usr/local/bin/wait-for-postgres.sh", "postgres"]
+    # This command is passed to the script after the database is ready.
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -17,10 +21,19 @@ services:
       - postgres
     networks:
       - edrop-net
-    # This entrypoint calls the script AND passes "postgres" as the first argument.
-    entrypoint: ["/usr/local/bin/wait-for-postgres.sh", "postgres"]
-    # This command is passed to the script after the database is ready.
-    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:5173"
+    volumes:
+      - ./frontend:/app
+    networks:
+      - edrop-net
+    depends_on:
+      - backend
 
   postgres:
     image: postgres:15-alpine
