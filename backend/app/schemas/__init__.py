@@ -9,3 +9,4 @@ from .product import Product, ProductCreate, ProductUpdate
 from .warehouse import Warehouse, WarehouseCreate, WarehouseUpdate
 from .order import Order, OrderCreate, OrderUpdate
 from .order_products import OrderProduct, OrderProductCreate, OrderProductUpdate
+from .milestone import Milestone, MilestoneCreate, MilestoneUpdate

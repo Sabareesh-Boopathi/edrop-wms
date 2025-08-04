@@ -1,0 +1,76 @@
+/* Reusing styles from WarehouseManagement.css where possible */
+@import './WarehouseManagement.css';
+
+/* Specific styles for User & Role Management */
+.user-name {
+    font-weight: 500;
+    color: #1f2937; /* text-gray-800 */
+}
+
+.user-email {
+    font-size: 0.875rem; /* text-sm */
+    color: #6b7280; /* text-gray-500 */
+}
+
+.contact-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.last-login-text {
+    color: #4b5563; /* text-gray-600 */
+}
+
+.role-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px; /* rounded-full */
+    font-size: 0.75rem; /* text-xs */
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.role-admin {
+    background-color: #fee2e2; /* bg-red-100 */
+    color: #b91c1c; /* text-red-800 */
+}
+
+.role-manager {
+    background-color: #dbeafe; /* bg-blue-100 */
+    color: #1e40af; /* text-blue-800 */
+}
+
+.role-operator {
+    background-color: #fef3c7; /* bg-amber-100 */
+    color: #92400e; /* text-amber-800 */
+}
+
+.role-viewer {
+    background-color: #e5e7eb; /* bg-gray-200 */
+    color: #4b5563; /* text-gray-600 */
+}
+
+.add-user-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #2E8B57 !important; /* bg-indigo-600 */
+    color: white;
+    font-weight: 600;
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.5rem;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.add-user-btn:hover {
+    background-color: #2E8B57 !important; /* bg-indigo-700 */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}

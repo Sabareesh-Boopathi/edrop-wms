@@ -4,14 +4,17 @@ import {
   Home, Package, Truck, Users, BarChart2, ChevronsLeft, ChevronsRight, 
   Bell, User, ArrowLeftRight, ChevronDown, Warehouse, Recycle, Wrench, FileText,
   Inbox, CheckSquare, MapPin, ListChecks, Box, Route, Trash2, HandHeart, Sparkles,
-  Building, UserCog, Contact, PackageSearch, Scan, Thermometer
+  Building, UserCog, Contact, PackageSearch, Scan, Thermometer, LogOut
 } from 'lucide-react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const DashboardLayout: React.FC = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
   const [openMenu, setOpenMenu] = React.useState<string | null>('Dashboard');
   const location = useLocation();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
@@ -21,9 +24,14 @@ const DashboardLayout: React.FC = () => {
     setOpenMenu(openMenu === menu ? null : menu);
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   React.useEffect(() => {
     const currentTopLevelMenu = menuItems.find(item => 
-      location.pathname.startsWith(item.basePath)
+      item.basePath && location.pathname.startsWith(item.basePath)
     );
     if (currentTopLevelMenu) {
       setOpenMenu(currentTopLevelMenu.name);
@@ -147,6 +155,12 @@ const DashboardLayout: React.FC = () => {
             </li>
           ))}
         </ul>
+        <div className="sidebar-footer">
+          <button onClick={handleLogout} className="logout-button">
+            <LogOut />
+            {!isSidebarCollapsed && <span>Logout</span>}
+          </button>
+        </div>
       </nav>
 
       <main className="dashboard-main">

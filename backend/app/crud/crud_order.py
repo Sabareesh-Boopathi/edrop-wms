@@ -1,9 +1,11 @@
 # filepath: c:\Users\priya\Projects\eDrop-UrbanHive\edrop-wms\backend\app\crud\crud_order.py
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 from app.crud.base import CRUDBase
 from app.models.order import Order
 from app.models.order_product import OrderProduct  # <-- Corrected model import
 from app.schemas.order import OrderCreate, OrderUpdate
+from app.services.milestone_service import check_and_create_milestone, MilestoneEventType, MilestoneEntityType
 
 class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
     def create_with_items(self, db: Session, *, obj_in: OrderCreate) -> Order:
@@ -16,6 +18,32 @@ class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
+
+        # Check for order count milestones
+        total_orders = order.get_multi(db)
+        check_and_create_milestone(
+            db,
+            event_type=MilestoneEventType.ORDER_COUNT,
+            entity_type=MilestoneEntityType.ORDER,
+            entity_id=str(db_obj.id),
+            current_count=total_orders,
+            description="🎉 A new order milestone has been reached!",
+            title="Order milestone",
+            milestone_type="order_count"
+        )
+
+        # Check for customer order count milestones
+        customer_orders = order.get_multi_by_owner(db, user_id=db_obj.customer_id)
+        check_and_create_milestone(
+            db,
+            event_type=MilestoneEventType.CUSTOMER_ORDER_COUNT,
+            entity_type=MilestoneEntityType.CUSTOMER,
+            entity_id=db_obj.customer_id,
+            current_count=len(customer_orders),
+            user_id=db_obj.customer_id,
+            description=f"🎉 Customer {db_obj.customer_id} placed their {len(customer_orders)}th order!",
+        )
+    
         # Associate items with the order
         for item in obj_in.items:
             order_product_obj = OrderProduct(
@@ -28,5 +56,16 @@ class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
         db.commit()
         db.refresh(db_obj)
         return db_obj
+
+    def create(self, db: Session, *, obj_in: OrderCreate) -> Order:
+        try:
+            db_obj = self.model(**obj_in.dict())
+            db.add(db_obj)
+            db.commit()
+            db.refresh(db_obj)
+            return db_obj
+        except SQLAlchemyError as e:
+            db.rollback()
+            raise e
 
 order = CRUDOrder(Order)

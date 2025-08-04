@@ -21,6 +21,7 @@ body {
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease;
+  flex-shrink: 0;
 }
 
 .sidebar-header {
@@ -29,13 +30,16 @@ body {
   justify-content: space-between;
   padding: 20px;
   border-bottom: 1px solid #e9ecef;
+  height: 68px; /* Fixed height to align with header */
+  box-sizing: border-box;
 }
 
 .sidebar-logo {
   font-size: 24px;
   font-weight: 700;
-  color: #3b82f6;
+  color: #2E8B57; /* Primary Color */
   margin: 0;
+  white-space: nowrap;
 }
 
 .sidebar-toggle {
@@ -43,26 +47,29 @@ body {
   border: none;
   cursor: pointer;
   font-size: 20px;
-  color: #6c757d;
+  color: #6c757d; /* Text Light */
 }
 
 .sidebar-menu {
   list-style: none;
-  padding: 20px;
+  padding: 15px;
   margin: 0;
+  flex-grow: 1;
+  overflow-y: auto;
 }
 
-.sidebar-menu li a {
+.sidebar-menu li a, .sidebar-menu li > a {
   display: flex;
   align-items: center;
   padding: 12px 15px;
-  color: #495057;
+  color: #6c757d; /* Text Light */
   text-decoration: none;
   border-radius: 8px;
   margin-bottom: 5px;
   font-weight: 500;
   transition: background-color 0.2s ease, color 0.2s ease;
   position: relative;
+  cursor: pointer;
 }
 
 .submenu-arrow {
@@ -89,26 +96,32 @@ body {
 .submenu li a {
   padding: 10px 15px;
   font-size: 14px;
+  color: #6c757d; /* Text Light */
 }
 
-.sidebar-menu li a:hover, .sidebar-menu li a.active {
-  background-color: #eaf4ff;
-  color: #3b82f6;
+.sidebar-menu li a:hover,
+.sidebar-menu li .submenu a:hover,
+.sidebar-menu li.active-parent > a,
+.sidebar-menu .submenu a.active {
+  background-color: #eafaf1; /* Primary Light */
+  color: #2E8B57; /* Primary */
 }
 
 .sidebar-menu li a svg {
   margin-right: 15px;
-  font-size: 20px; /* Increased font size */
-  min-width: 20px; /* Ensure icons have a minimum width */
+  font-size: 20px;
+  min-width: 20px;
   transition: all 0.3s ease;
 }
 
+/* === Collapsed Sidebar === */
 .dashboard-container.sidebar-collapsed .dashboard-sidebar {
   width: 80px;
 }
 
 .dashboard-container.sidebar-collapsed .sidebar-logo,
-.dashboard-container.sidebar-collapsed .sidebar-menu li a span {
+.dashboard-container.sidebar-collapsed .sidebar-menu li a span,
+.dashboard-container.sidebar-collapsed .submenu-arrow {
   display: none;
   opacity: 0;
 }
@@ -118,6 +131,57 @@ body {
 }
 
 .dashboard-container.sidebar-collapsed .sidebar-menu li a svg {
+  margin-right: 0;
+}
+
+.dashboard-container.sidebar-collapsed .submenu {
+  display: none;
+}
+
+/* === Sidebar Footer & Logout Button === */
+.sidebar-footer {
+  padding: 15px;
+  border-top: 1px solid #e9ecef;
+}
+
+.logout-button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  background-color: transparent;
+  border: none;
+  padding: 12px 15px;
+  color: #6c757d; /* Text Light */
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.logout-button:hover {
+  background-color: #eafaf1; /* Primary Light */
+  color: #2E8B57; /* Primary */
+}
+
+.logout-button svg {
+  margin-right: 15px;
+  font-size: 20px;
+  min-width: 20px;
+}
+
+.dashboard-container.sidebar-collapsed .logout-button span {
+  display: none;
+}
+
+.dashboard-container.sidebar-collapsed .logout-button {
+  justify-content: center;
+}
+
+.dashboard-container.sidebar-collapsed .logout-button svg {
   margin-right: 0;
 }
 

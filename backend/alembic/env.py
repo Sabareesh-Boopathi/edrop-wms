@@ -101,6 +101,16 @@ def run_migrations_online() -> None:
             context.run_migrations()
 
 
+# Dynamically set DATABASE_URL based on NODE_ENV
+NODE_ENV = os.getenv("NODE_ENV", "development")
+if NODE_ENV == "development":
+    DB_HOST = os.getenv("DB_HOST", "localhost")
+else:
+    DB_HOST = os.getenv("DB_HOST", "postgres")
+
+DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_DATABASE}"
+config.set_main_option("sqlalchemy.url", DATABASE_URL.replace("%", "%%"))
+
 if context.is_offline_mode():
     run_migrations_offline()
 else:

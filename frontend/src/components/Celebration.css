@@ -1,0 +1,136 @@
+.celebration-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.celebration-content {
+  text-align: center;
+  color: white;
+  animation: pop-in 0.5s ease-out;
+}
+
+.trophy-icon {
+  font-size: 5rem;
+  line-height: 1;
+  display: inline-block;
+}
+
+@keyframes pop-in {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.celebration-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+}
+
+.celebration-modal {
+  position: relative;
+  background-color: white;
+  border-radius: 1rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  padding: 2rem;
+  max-width: 32rem;
+  width: 100%;
+  text-align: center;
+}
+
+.rocket-container {
+  position: absolute;
+  bottom: -4rem; /* -bottom-16 */
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.rocket-gif {
+  width: 10rem; /* w-40 */
+  height: auto;
+}
+
+.celebration-title {
+  font-size: 2.25rem; /* text-4xl */
+  font-weight: 700;
+  color: #10B981; /* A nice green color */
+  margin-bottom: 0.75rem; /* mb-3 */
+}
+
+.celebration-subtitle {
+  font-size: 1.125rem; /* text-lg */
+  color: #4B5563; /* text-gray-600 */
+  margin-bottom: 1.5rem; /* mb-6 */
+}
+
+.celebration-button {
+  display: inline-block;
+  background-color: #4caf50; /* bg-green-500 */
+  color: white;
+  padding: 0.75rem 1.5rem; /* py-3 px-6 */
+  border-radius: 0.5rem; /* rounded */
+  text-decoration: none;
+  font-weight: 500;
+  transition: background-color 0.3s ease;
+}
+
+.celebration-button:hover {
+  background-color: #45a049; /* bg-green-600 */
+}
+
+.celebration-footer {
+  margin-top: 1.5rem; /* mt-6 */
+  font-size: 0.875rem; /* text-sm */
+  color: #cbd5e0; /* text-gray-300 */
+}
+
+.trophy-container {
+  margin-bottom: 1.5rem;
+  display: inline-block;
+}
+
+.trophy-gif {
+  width: 10rem;
+  height: auto;
+  margin: 0 auto;
+}
+
+.celebration-title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: #10B981;
+  margin-bottom: 0.75rem;
+}
+
+.celebration-subtitle {
+  font-size: 1.125rem;
+  color: #4B5563;
+}

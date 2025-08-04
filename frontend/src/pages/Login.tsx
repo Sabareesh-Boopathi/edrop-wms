@@ -1,48 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import api from '../services/api';
+import { toast } from 'sonner';
 import './Login.css';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const [error, setError] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
-  const [password, setPassword] = useState('');
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
-  const [showToast, setShowToast] = useState(false);
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [successToast, setSuccessToast] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [errorFields, setErrorFields] = useState<{ email?: boolean; password?: boolean }>({});
 
-  React.useEffect(() => {
+  useEffect(() => {
     document.body.classList.add('login-page');
     return () => {
       document.body.classList.remove('login-page');
     };
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const email = (e.target as HTMLFormElement).email.value;
-    const password = (e.target as HTMLFormElement).password.value;
-
-    // Simulate login validation
-    if (email !== 'test@example.com' || password !== 'password') {
-      setError('Invalid login credentials');
-      setShowToast(true);
-    } else {
-      setError(null);
-      setShowToast(false);
-      setSuccessToast(true);
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 3000); // Redirect after 3 seconds
-    }
-  };
-
   useEffect(() => {
-    if (showToast) {
-      const timer = setTimeout(() => setShowToast(false), 3000); // Auto-dismiss after 3 seconds
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+        setErrorFields({});
+      }, 3000); // Auto-dismiss after 3 seconds
       return () => clearTimeout(timer);
     }
-  }, [showToast]);
+  }, [error]);
 
   useEffect(() => {
     if (successToast) {
@@ -51,13 +39,93 @@ const Login: React.FC = () => {
     }
   }, [successToast]);
 
+  const validate = () => {
+    setErrorFields({});
+    if (!email) {
+      setError('Email is required');
+      setErrorFields({ email: true });
+      return false;
+    }
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      setError('Email is invalid');
+      setErrorFields({ email: true });
+      return false;
+    }
+    if (!password) {
+      setError('Password is required');
+      setErrorFields({ password: true });
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!validate()) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await api.post('/login/access-token', new URLSearchParams({
+        username: email,
+        password: password,
+      }));
+
+      if (response.data.access_token) {
+        await login(response.data.access_token);
+        setSuccessToast(true);
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 2000);
+      } else {
+        setError('Login failed: No access token received.');
+        setErrorFields({ email: true, password: true });
+      }
+    } catch (err: any) {
+      if (err.response && err.response.data && err.response.data.detail) {
+        setError(err.response.data.detail);
+        // When backend sends an error, outline both fields for security
+        setErrorFields({ email: true, password: true });
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleTokenExpiration = () => {
+    toast.error('Session expired. Please log in again.');
+    setTimeout(() => navigate('/login'), 3000); // Redirect after 3 seconds
+  };
+
+  useEffect(() => {
+    const interceptor = api.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401 && error.response?.data?.detail === 'Token has expired. Please log in again.') {
+          handleTokenExpiration();
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      api.interceptors.response.eject(interceptor);
+    };
+  }, []);
+
   return (
     <div className="login-container">
       <div className="login-card">
-        <h1 className="login-title">LOGIN</h1>
-        <p className="login-subtitle">Welcome back</p>
+        <h1 className="login-title">eDrop</h1>
+        <p className="login-subtitle">Welcome back to WMS</p>
 
-        {showToast && (
+        {error && (
           <div
             className="custom-toast"
             style={{
@@ -86,7 +154,7 @@ const Login: React.FC = () => {
                 right: '10px',
                 transform: 'translateY(-50%)',
               }}
-              onClick={() => setShowToast(false)}
+              onClick={() => setError(null)}
             >
               &times;
             </button>
@@ -113,7 +181,7 @@ const Login: React.FC = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="login-form">
+        <form onSubmit={handleSubmit} className="login-form" noValidate>
           <label htmlFor="email" className="login-label">
             Email
           </label>
@@ -121,31 +189,30 @@ const Login: React.FC = () => {
             type="email"
             id="email"
             name="email"
-            className={`login-input ${error && showToast ? 'error-outline' : ''}`}
+            className={`login-input ${errorFields.email ? 'error-outline' : ''}`}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
+            disabled={isLoading}
           />
-
           <label htmlFor="password" className="login-label">
             Password
           </label>
-          <div style={{ position: 'relative' }}>
-            <input
-              type={showPassword ? 'text' : 'password'}
-              id="password"
-              name="password"
-              className={`login-input ${error && showToast ? 'error-outline' : ''}`}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-
+          <input
+            type="password"
+            id="password"
+            name="password"
+            className={`login-input ${errorFields.password ? 'error-outline' : ''}`}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            disabled={isLoading}
+          />
           <div className="forgot-password">
             <a href="#">Forgot Password?</a>
           </div>
-
-          <button type="submit" className="login-button">
-            Login
+          <button type="submit" className="login-button" disabled={isLoading}>
+            {isLoading ? 'Logging in...' : 'Login'}
           </button>
         </form>
       </div>

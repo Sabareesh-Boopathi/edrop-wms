@@ -31,55 +31,72 @@ import MobileAppSync from './pages/tools/MobileAppSync';
 import BarcodeGenerator from './pages/tools/BarcodeGenerator';
 import FreshnessMonitoring from './pages/tools/FreshnessMonitoring';
 import { Toaster } from 'components/ui/sonner';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
     <>
       <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/" element={<DashboardLayout />}>
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<DashboardHome />} />
-            
-            <Route path="inbound/goods-in" element={<GoodsIn />} />
-            <Route path="inbound/quality-check" element={<QualityCheck />} />
-            <Route path="inbound/bin-allocation" element={<BinAllocation />} />
-
-            <Route path="inventory/stock-overview" element={<StockOverview />} />
-            <Route path="inventory/stock-adjustment" element={<StockAdjustment />} />
-            <Route path="inventory/crate-inventory" element={<CrateInventory />} />
-
-            <Route path="outbound/pick-list" element={<PickList />} />
-            <Route path="outbound/packing" element={<Packing />} />
-            <Route path="outbound/route-binning" element={<RouteBinning />} />
-            <Route path="outbound/dispatch-console" element={<DispatchConsole />} />
-
-            <Route path="returns-waste/returns-management" element={<ReturnsManagement />} />
-            <Route path="returns-waste/charity-disposal-routing" element={<CharityDisposalRouting />} />
-            <Route path="returns-waste/crate-sanitization" element={<CrateSanitization />} />
-
-            <Route path="administration/warehouse-management" element={<WarehouseManagement />} />
-            <Route path="administration/users-roles" element={<UsersAndRoles />} />
-            <Route path="administration/vendors" element={<Vendors />} />
-            <Route path="administration/crate-management" element={<CrateManagement />} />
-            <Route path="administration/bin-management" element={<BinManagement />} />
-            <Route path="administration/system-configuration" element={<SystemConfiguration />} />
-
-            <Route path="reports/stock-movement" element={<StockMovement />} />
-            <Route path="reports/fulfillment-accuracy" element={<FulfillmentAccuracy />} />
-            <Route path="reports/crate-utilization" element={<CrateUtilization />} />
-            <Route path="reports/emission-savings" element={<EmissionSavings />} />
-
-            <Route path="tools/mobile-app-sync" element={<MobileAppSync />} />
-            <Route path="tools/barcode-generator" element={<BarcodeGenerator />} />
-            <Route path="tools/freshness-monitoring" element={<FreshnessMonitoring />} />
-          </Route>
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <DashboardRoutes />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </AuthProvider>
       </Router>
       <Toaster />
     </>
   );
 }
+
+const DashboardRoutes = () => (
+  <Routes>
+    <Route path="/" element={<DashboardLayout />}>
+      <Route index element={<Navigate to="/dashboard" replace />} />
+      <Route path="dashboard" element={<DashboardHome />} />
+      
+      <Route path="inbound/goods-in" element={<GoodsIn />} />
+      <Route path="inbound/quality-check" element={<QualityCheck />} />
+      <Route path="inbound/bin-allocation" element={<BinAllocation />} />
+
+      <Route path="inventory/stock-overview" element={<StockOverview />} />
+      <Route path="inventory/stock-adjustment" element={<StockAdjustment />} />
+      <Route path="inventory/crate-inventory" element={<CrateInventory />} />
+
+      <Route path="outbound/pick-list" element={<PickList />} />
+      <Route path="outbound/packing" element={<Packing />} />
+      <Route path="outbound/route-binning" element={<RouteBinning />} />
+      <Route path="outbound/dispatch-console" element={<DispatchConsole />} />
+
+      <Route path="returns-waste/returns-management" element={<ReturnsManagement />} />
+      <Route path="returns-waste/charity-disposal-routing" element={<CharityDisposalRouting />} />
+      <Route path="returns-waste/crate-sanitization" element={<CrateSanitization />} />
+
+      <Route path="administration/warehouse-management" element={<WarehouseManagement />} />
+      <Route path="administration/users-roles" element={<UsersAndRoles />} />
+      <Route path="administration/vendors" element={<Vendors />} />
+      <Route path="administration/crate-management" element={<CrateManagement />} />
+      <Route path="administration/bin-management" element={<BinManagement />} />
+      <Route path="administration/system-configuration" element={<SystemConfiguration />} />
+
+      <Route path="reports/stock-movement" element={<StockMovement />} />
+      <Route path="reports/fulfillment-accuracy" element={<FulfillmentAccuracy />} />
+      <Route path="reports/crate-utilization" element={<CrateUtilization />} />
+      <Route path="reports/emission-savings" element={<EmissionSavings />} />
+
+      <Route path="tools/mobile-app-sync" element={<MobileAppSync />} />
+      <Route path="tools/barcode-generator" element={<BarcodeGenerator />} />
+      <Route path="tools/freshness-monitoring" element={<FreshnessMonitoring />} />
+    </Route>
+  </Routes>
+);
 
 export default App;

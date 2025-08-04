@@ -1,0 +1,55 @@
+.location-picker-content {
+    background-color: white;
+    border-radius: 1rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    width: 90vw;
+    max-width: 800px;
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.map-container {
+    flex-grow: 1;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    margin-top: 1rem;
+    border: 1px solid #e5e7eb;
+}
+
+.leaflet-container {
+    height: 100%;
+    width: 100%;
+}
+
+.leaflet-bar.leaflet-control.leaflet-control-geosearch {
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    box-shadow: none;
+}
+
+.leaflet-bar.leaflet-control.leaflet-control-geosearch form input {
+    height: 40px;
+    padding: 0 1rem;
+    border: none;
+    outline: none;
+}
+
+.leaflet-bar.leaflet-control.leaflet-control-geosearch form button {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+}
+
+.selected-coords {
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.modal-footer .btn .icon {
+    margin-right: 0.5rem;
+}

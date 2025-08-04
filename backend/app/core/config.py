@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "eDrop WMS"
     PROJECT_VERSION: str = "1.0.0"
 
+    # Backend CORS origins
+    BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:3000"]
+
     # Individual database components read from .env
     DB_USER: str
     DB_PASSWORD: str

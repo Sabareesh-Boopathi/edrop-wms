@@ -5,6 +5,7 @@ class CustomerBase(BaseModel):
     phone_number: str | None = None
     user_id: uuid.UUID
     flat_id: uuid.UUID
+    email: str
 
 class CustomerCreate(CustomerBase):
     pass

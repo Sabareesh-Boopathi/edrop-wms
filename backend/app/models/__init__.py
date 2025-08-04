@@ -8,3 +8,4 @@ from .product import Product
 from .warehouse import Warehouse
 from .order import Order
 from .order_product import OrderProduct
+from .milestone import Milestone

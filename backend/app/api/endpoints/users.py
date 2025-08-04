@@ -4,6 +4,7 @@ import uuid
 import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from jose.exceptions import ExpiredSignatureError
 
 from app.api import deps
 from app.crud import crud_user
@@ -49,7 +50,11 @@ def read_user_me(current_user: UserModel = Depends(deps.get_current_active_user)
     Get current user's profile.
     """
     logger.info(f"ℹ️ User '{current_user.id}' requesting their own profile.")
-    return current_user
+    try:
+        return current_user
+    except ExpiredSignatureError as e:
+        logger.error(f"❌ Token expired: {str(e)}")
+        raise HTTPException(status_code=401, detail="Token has expired. Please log in again.")
 
 @router.get("/{user_id}", response_model=User)
 def read_user_by_id(

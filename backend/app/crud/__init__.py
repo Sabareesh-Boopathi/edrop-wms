@@ -11,3 +11,4 @@ from .crud_product import product
 from .crud_warehouse import warehouse
 from .crud_order import order
 from .crud_order_products import order_product
+from .crud_milestone import milestone
