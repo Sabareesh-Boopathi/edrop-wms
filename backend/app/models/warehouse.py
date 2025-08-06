@@ -1,9 +1,10 @@
 # filepath: backend/app/models/warehouse.py
 import uuid
-from sqlalchemy import Column, String, Text, ForeignKey, Numeric, Date, Integer, Enum, UniqueConstraint
+from sqlalchemy import Column, String, Text, ForeignKey, Numeric, Date, Integer, Enum, UniqueConstraint, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.db.base_class import Base
+from datetime import datetime
 
 class Warehouse(Base):
     __tablename__ = "warehouses"
@@ -26,4 +27,13 @@ class Warehouse(Base):
     operations_time = Column(String(100))
     contact_phone = Column(String(20))
     contact_email = Column(String(255))
-    manager = relationship("User")
+    manager = relationship("User", foreign_keys="Warehouse.manager_id", lazy='joined')
+    
+    stores = relationship(
+        'Store',
+        secondary='store_warehouse_association',
+        back_populates='warehouses'
+    )
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

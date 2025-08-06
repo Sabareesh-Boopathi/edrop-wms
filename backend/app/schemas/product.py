@@ -1,13 +1,14 @@
 import uuid
 from pydantic import BaseModel
 from decimal import Decimal
+from typing import List, Optional
+from uuid import UUID
 
 class ProductBase(BaseModel):
     name: str
-    description: str | None = None
+    description: Optional[str] = None
     sku: str
-    price: Decimal
-    vendor_id: uuid.UUID
+    price: float
 
 class ProductCreate(ProductBase):
     pass
@@ -18,6 +19,8 @@ class ProductUpdate(BaseModel):
     price: Decimal | None = None
 
 class Product(ProductBase):
-    id: uuid.UUID
+    id: UUID
+    store_products: List["StoreProduct"] = []  # Updated to reflect the relationship with StoreProduct
+
     class Config:
-        from_attributes = True
+        orm_mode = True

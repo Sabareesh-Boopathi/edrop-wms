@@ -20,7 +20,7 @@ class CRUDWarehouse(CRUDBase[Warehouse, WarehouseCreate, WarehouseUpdate]):
                 entity_type=MilestoneEntityType.SYSTEM,
                 entity_id=str(db_obj.id),
                 current_count=1,  # Default value for current_count
-                description="🏗️ A new warehouse has been added to the system! 🏢",
+                description="🏗️ A new warehouse has been added to the eco-system! 🏢",
                 title="Warehouse creation milestone",  # Added title
                 milestone_type="warehouse_creation"  # Ensure milestone_type is passed
             )
@@ -37,5 +37,37 @@ class CRUDWarehouse(CRUDBase[Warehouse, WarehouseCreate, WarehouseUpdate]):
         except SQLAlchemyError as e:
             db.rollback()  # Rollback the transaction on error
             raise e
+
+    def create_warehouse_milestone(
+        db: Session,
+        *,
+        warehouse_id: str,
+        current_count: int,
+        description: str,
+        title: str,
+        milestone_type: str
+    ):
+        """
+        Create a milestone specific to a warehouse.
+        """
+        check_and_create_milestone(
+            db,
+            event_type=MilestoneEventType.WAREHOUSE_USER_COUNT,
+            entity_type=MilestoneEntityType.WAREHOUSE,
+            entity_id=warehouse_id,
+            current_count=current_count,
+            description=description,
+            title=title,
+            milestone_type=milestone_type,
+            warehouse_id=warehouse_id
+        )
+
+    def update(self, db: Session, *, db_obj: Warehouse, obj_in: WarehouseUpdate) -> Warehouse:
+        update_data = obj_in.dict(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_obj, field, value)
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
 
 warehouse = CRUDWarehouse(Warehouse)

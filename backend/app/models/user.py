@@ -1,10 +1,11 @@
 # filepath: backend/app/models/user.py
 import uuid
-from sqlalchemy import Column, String, Boolean, DateTime, UniqueConstraint, func
+from sqlalchemy import Column, String, Boolean, DateTime, UniqueConstraint, func, Integer, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.db.base_class import Base
 from app.models.milestone import Milestone
+from datetime import datetime
 
 class User(Base):
     __tablename__ = "users"
@@ -21,9 +22,11 @@ class User(Base):
     phone_number = Column(String(20), nullable=True)
     address = Column(String(255), nullable=True)
     last_login = Column(DateTime(timezone=True), nullable=True)
+    warehouse_id = Column(UUID(as_uuid=True), ForeignKey("warehouses.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    customer = relationship("Customer", back_populates="user", uselist=False)
-    vendor = relationship("Vendor", back_populates="user", uselist=False) # Renamed from vendor_profile
-    warehouses = relationship("Warehouse", back_populates="manager", cascade="all, delete-orphan")
-    milestones = relationship("Milestone", back_populates="user")
+    customer = relationship("Customer", back_populates="user", uselist=False, lazy='joined')
+    warehouses = relationship("Warehouse", back_populates="manager", cascade="all, delete-orphan", foreign_keys="Warehouse.manager_id", lazy='dynamic')
+    milestones = relationship("Milestone", back_populates="user", lazy='dynamic')

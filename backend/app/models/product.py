@@ -13,6 +13,6 @@ class Product(Base):
     sku = Column(String(100), nullable=False, unique=True)
     price = Column(Numeric(10, 2), nullable=False)
     vendor_id = Column(UUID(as_uuid=True), ForeignKey("vendors.id"), nullable=False)
-    vendor = relationship("Vendor", back_populates="products")
 
     order_products = relationship("OrderProduct", back_populates="product")
+    store_products = relationship('StoreProduct', back_populates='product')

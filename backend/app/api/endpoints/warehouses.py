@@ -7,6 +7,7 @@ from app.api import deps
 from app.crud import crud_warehouse
 from app.models.user import User
 from app.schemas.warehouse import Warehouse, WarehouseCreate, WarehouseUpdate
+from app.schemas.store_products import StoreProduct as StoreProductSchema  # Import the StoreProduct schema
 
 router = APIRouter()
 logger = logging.getLogger("app.api.endpoints.warehouses")
@@ -75,3 +76,17 @@ def delete_warehouse(
     deleted_warehouse = crud_warehouse.warehouse.remove(db, id=warehouse_id)
     logger.info(f"✅ Warehouse '{deleted_warehouse.id}' deleted successfully by admin '{current_user.id}'.")
     return deleted_warehouse
+
+@router.get("/{warehouse_id}/products", response_model=List[StoreProductSchema])
+def get_warehouse_products(
+    warehouse_id: uuid.UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    """
+    Retrieve all products stored in a warehouse.
+    """
+    logger.info(f"🔍 User '{current_user.id}' fetching products for warehouse '{warehouse_id}'.")
+    # Assuming a method exists to fetch products by warehouse
+    products = crud_warehouse.warehouse.get_products(db, warehouse_id=warehouse_id)
+    return products

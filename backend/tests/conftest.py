@@ -81,7 +81,7 @@ def test_customer(db: Session, test_flat: dict) -> dict:
 def test_vendor(db: Session) -> dict:
     """Creates a test vendor and returns it as a dictionary."""
     user = crud.user.create(db, obj_in=UserCreate(name=random_lower_string(), email=random_email(), password=random_lower_string(), role="vendor"))
-    vendor = crud.vendor.create(db, obj_in=VendorCreate(user_id=user.id, business_name=random_lower_string(), address=random_lower_string()))
+    vendor = crud.vendor.create(db, obj_in=VendorCreate(business_name=random_lower_string(), address=random_lower_string()))
     return {"id": str(vendor.id), "business_name": vendor.business_name, "user_id": str(user.id)}
 
 @pytest.fixture(scope="function")
@@ -181,7 +181,7 @@ def vendor_user_auth_headers(client: TestClient, db: Session) -> dict:
     email = random_email()
     password = random_lower_string()
     user = crud.user.create(db, obj_in=UserCreate(name=random_lower_string(), email=email, password=password, role="vendor"))
-    crud.vendor.create(db, obj_in=VendorCreate(user_id=user.id, business_name=random_lower_string(), address=random_lower_string()))
+    crud.vendor.create(db, obj_in=VendorCreate(business_name=random_lower_string(), address=random_lower_string()))
 
     login_data = {"username": email, "password": password}
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)

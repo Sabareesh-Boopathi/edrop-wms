@@ -9,7 +9,20 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import * as userService from '../../services/userService';
+import { getWarehouses } from '../../services/warehouseService';
 import './UsersAndRoles.css';
+
+// Simple EmptyState component definition
+const EmptyState: React.FC<{ onAdd: () => void }> = ({ onAdd }) => (
+    <div className="empty-state">
+        <h2>No users found</h2>
+        <p>Add your first user to get started.</p>
+        <Button onClick={onAdd} className="add-user-btn">
+            <PlusCircle className="icon" />
+            Add New User
+        </Button>
+    </div>
+);
 
 const USER_STATUSES_TUPLE = ["ACTIVE", "INACTIVE", "PENDING"] as const;
 const ROLE_TUPLE = ["ADMIN", "MANAGER", "OPERATOR", "VIEWER"] as const;
@@ -23,6 +36,7 @@ const baseUserSchema = z.object({
   role: z.enum(ROLE_TUPLE),
   status: z.enum(USER_STATUSES_TUPLE),
   password: z.string().optional().nullable(),
+  warehouse_id: z.string().nullable().optional(),
 });
 
 export type UserSchema = z.infer<typeof baseUserSchema>;
@@ -38,6 +52,7 @@ export type UserData = {
     role: Role;
     status: UserStatus;
     last_login: string;
+    warehouse_id: string | null;
 };
 
 const UsersAndRoles: React.FC = () => {
@@ -47,16 +62,16 @@ const UsersAndRoles: React.FC = () => {
     const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
 
     useEffect(() => {
-        fetchUsers();
+        fetchUsersWithWarehouses();
     }, []);
 
-    const fetchUsers = async () => {
+    const fetchUsersWithWarehouses = async () => {
         try {
             setIsLoading(true);
-            const data = await userService.getUsers();
+            const data = await userService.getUsersWithWarehouses();
             setUsers(data);
         } catch (error) {
-            toast.error("Failed to fetch users.");
+            toast.error("Failed to fetch users with warehouses.");
             console.error(error);
         } finally {
             setIsLoading(false);
@@ -97,7 +112,8 @@ const UsersAndRoles: React.FC = () => {
 
     const handleSaveUser = async (data: UserSchema) => {
         try {
-            const userData = { ...data };
+            const userData = { ...data, warehouse_id: data.warehouse_id || null }; // Ensure warehouse_id is included in the payload
+            console.log("Payload sent to backend:", userData);
 
             // Handle user update or creation
             if (selectedUser) {
@@ -139,6 +155,23 @@ const UsersAndRoles: React.FC = () => {
 
     if (isLoading) {
         return <div>Loading...</div>;
+    }
+
+    if (!isLoading && users.length === 0) {
+        return (
+            <div className="page-content">
+                <EmptyState onAdd={handleAddUser} />
+                <AnimatePresence>
+                    {isModalOpen && (
+                        <UserModal
+                            user={selectedUser}
+                            onClose={() => setIsModalOpen(false)}
+                            onSave={handleSaveUser}
+                        />
+                    )}
+                </AnimatePresence>
+            </div>
+        );
     }
 
     return (
@@ -287,7 +320,7 @@ const userSchema = (isEditMode: boolean) => baseUserSchema.extend({
 
 const UserModal: React.FC<{ user: UserData | null, onClose: () => void, onSave: (data: UserSchema) => void }> = ({ user, onClose, onSave }) => {
     const isEditMode = user !== null;
-    const { register, handleSubmit, formState: { errors } } = useForm<UserSchema>({
+    const { register, handleSubmit, formState: { errors }, watch, reset } = useForm<UserSchema>({
         resolver: zodResolver(userSchema(isEditMode)),
         defaultValues: {
             name: user?.name || '',
@@ -296,8 +329,42 @@ const UserModal: React.FC<{ user: UserData | null, onClose: () => void, onSave: 
             address: user?.address || '',
             role: user?.role || 'VIEWER',
             status: user?.status || 'PENDING',
+            warehouse_id: user?.warehouse_id || null, // Ensure warehouse_id is set correctly
         }
     });
+
+    // Define Warehouse type if not already imported
+    type Warehouse = {
+        id: string;
+        name: string;
+        // add other fields as needed
+    };
+
+    const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+    const role = watch("role");
+
+    useEffect(() => {
+        const fetchWarehouses = async () => {
+            const data = await getWarehouses();
+            setWarehouses(data);
+        };
+        fetchWarehouses();
+    }, []);
+
+    useEffect(() => {
+        if (user) {
+            const selectedWarehouse = warehouses.find(warehouse => warehouse.id === user.warehouse_id);
+            reset({
+                name: user.name,
+                email: user.email,
+                phone_number: user.phone_number,
+                address: user.address,
+                role: user.role,
+                status: user.status,
+                warehouse_id: selectedWarehouse ? selectedWarehouse.id : "", // Map warehouse_id to the correct warehouse
+            });
+        }
+    }, [user, warehouses, reset]);
 
     const onSubmit = (data: UserSchema) => {
         onSave(data);
@@ -385,6 +452,33 @@ const UserModal: React.FC<{ user: UserData | null, onClose: () => void, onSave: 
                             </select>
                             {errors.status?.message && <p className="error-message">{String(errors.status.message)}</p>}
                         </div>
+
+                        {role !== "ADMIN" && (
+                            <div className="form-group">
+                                <label htmlFor="warehouse_id">Warehouse</label>
+                                <select
+                                    id="warehouse_id"
+                                    {...register("warehouse_id", {
+                                        required: "Warehouse is required for non-ADMIN roles",
+                                        validate: value => value !== "" || "Please select a valid warehouse",
+                                    })}
+                                    className={errors.warehouse_id ? 'error' : ''}
+                                    value={watch("warehouse_id") || ""} // Use watch to dynamically update the value
+                                    onChange={(e) => {
+                                        const updatedValue = e.target.value;
+                                        reset({ ...watch(), warehouse_id: updatedValue }); // Update form state
+                                    }} // Update form state on change
+                                >
+                                    <option value="">Select a warehouse</option>
+                                    {warehouses.map(warehouse => (
+                                        <option key={warehouse.id} value={warehouse.id}>
+                                            {warehouse.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors.warehouse_id && <p className="error-message">{errors.warehouse_id.message}</p>}
+                            </div>
+                        )}
                     </div>
 
                     <div className="modal-footer">

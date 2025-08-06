@@ -54,3 +54,16 @@ def read_my_orders(
     orders = db.query(models.Order).filter(models.Order.customer_id == customer.id).all()
     logger.info(f"📦 {len(orders)} orders returned for customer {customer.id}.")
     return orders
+
+@router.get("/{order_id}/products", response_model=List[schemas.OrderProduct])
+def get_order_products(
+    order_id: str,
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_active_user),
+):
+    """
+    Retrieve all products associated with an order.
+    """
+    logger.info(f"🔍 User '{current_user.email}' fetching products for order '{order_id}'.")
+    products = crud.order_product.get_by_order_id(db, order_id=order_id)
+    return products

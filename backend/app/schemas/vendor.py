@@ -2,25 +2,47 @@
 import uuid
 from pydantic import BaseModel
 from decimal import Decimal
+from datetime import datetime
+from typing import Any, List
+from enum import Enum
+
+class VendorStatus(str, Enum):
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+    KYC_PENDING = "KYC PENDING"
+
+class VendorType(str, Enum):
+    SKU = "SKU"
+    FLAT = "FLAT"
 
 class VendorBase(BaseModel):
     business_name: str
-    address: str | None = None
-    latitude: Decimal | None = None
-    longitude: Decimal | None = None
+    registered_name: str | None = None
+    email: str | None = None
+    phone_number: str | None = None
+    registered_address: str | None = None
+    vendor_type: VendorType
+    vendor_status: VendorStatus
+    password: str
+    created_at: datetime
+    updated_at: datetime
+    stores: List[Any] = []  # Define a proper store schema if needed
 
 class VendorCreate(VendorBase):
-    user_id: uuid.UUID
+    pass
 
 class VendorUpdate(BaseModel):
     business_name: str | None = None
-    address: str | None = None
-    latitude: Decimal | None = None
-    longitude: Decimal | None = None
+    registered_name: str | None = None
+    email: str | None = None
+    phone_number: str | None = None
+    registered_address: str | None = None
+    vendor_type: VendorType | None = None
+    vendor_status: VendorStatus | None = None
+    password: str | None = None
 
 class Vendor(VendorBase):
     id: uuid.UUID
-    user_id: uuid.UUID
 
     class Config:
-        from_attributes = True
+        orm_mode = True

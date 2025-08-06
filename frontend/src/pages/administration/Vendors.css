@@ -1,0 +1,372 @@
+/* Reusing styles from WarehouseManagement.css where possible */
+@import './WarehouseManagement.css';
+
+/* Specific styles for Vendor Management, aligned with UsersAndRoles.css */
+
+.page-content {
+    padding: 2rem;
+    background-color: #f9fafb; /* bg-gray-50 */
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.header-text h1 {
+    font-size: 1.875rem; /* text-3xl */
+    font-weight: 700;
+    color: #111827; /* text-gray-900 */
+}
+
+.header-text p {
+    margin-top: 0.5rem;
+    font-size: 1rem; /* text-base */
+    color: #6b7280; /* text-gray-500 */
+}
+
+.add-vendor-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #2E8B57 !important;
+    color: white;
+    font-weight: 600;
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.5rem;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.add-vendor-btn:hover {
+    background-color: #2E8B57 !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.kpi-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.kpi-card {
+    background-color: white;
+    border-radius: 0.75rem; /* rounded-xl */
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.kpi-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.kpi-card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.kpi-card-icon {
+    padding: 0.5rem;
+    border-radius: 9999px;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.kpi-card-icon .icon {
+    width: 24px;
+    height: 24px;
+}
+
+.kpi-card-1 { background: linear-gradient(135deg, #5e72e4, #825ee4); }
+.kpi-card-2 { background: linear-gradient(135deg, #2dce89, #2dceb3); }
+.kpi-card-3 { background: linear-gradient(135deg, #fb6340, #fbb140); }
+
+.kpi-card-content {
+    margin-top: 1rem;
+}
+
+.kpi-card-value {
+    font-size: 2.25rem; /* text-4xl */
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.card {
+    background-color: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.card-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb; /* border-gray-200 */
+}
+
+.card-title {
+    font-size: 1.125rem; /* text-lg */
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.card-content {
+    padding: 1.5rem;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th, .table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.table th {
+    font-size: 0.75rem; /* text-xs */
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.vendor-name {
+    font-weight: 500;
+    color: #1f2937;
+}
+
+.vendor-registered-name {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.contact-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.status-badge, .type-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.status-badge .status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+.status-active .status-dot { background-color: #22c55e; } /* green-500 */
+.status-inactive .status-dot { background-color: #ef4444; } /* red-500 */
+.status-kyc-pending .status-dot { background-color: #f97316; } /* orange-500 */
+
+.status-active { background-color: #dcfce7; color: #166534; }
+.status-inactive { background-color: #fee2e2; color: #991b1b; }
+.status-kyc-pending { background-color: #ffedd5; color: #9a3412; }
+
+.type-sku { background-color: #dbeafe; color: #1e40af; }
+.type-flat { background-color: #e0e7ff; color: #3730a3; }
+
+.actions-cell {
+    text-align: right;
+}
+
+.action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    color: #6b7280;
+}
+
+.action-btn:hover {
+    background-color: #f3f4f6; /* bg-gray-100 */
+}
+
+.dropdown-content {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    padding: 0.5rem 0;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.dropdown-item:hover {
+    background-color: #f3f4f6;
+}
+
+.dropdown-item.danger {
+    color: #dc2626; /* red-600 */
+}
+
+.dropdown-item .icon {
+    width: 16px;
+    height: 16px;
+}
+
+/* Modal styles from UsersAndRoles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 50;
+}
+
+.modal-content {
+    background-color: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #6b7280;
+}
+
+.modal-form {
+    padding: 1.5rem;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.form-group input,
+.form-group select {
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 1rem;
+}
+
+.form-group input.error,
+.form-group select.error {
+    border-color: #ef4444;
+}
+
+.error-message {
+    color: #ef4444;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.btn {
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background-color: #2E8B57;
+    color: white;
+}
+
+.btn-outline {
+    background-color: transparent;
+    border: 1px solid #d1d5db;
+    color: #374151;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background-color: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+
+.empty-state h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.empty-state p {
+    margin-top: 0.5rem;
+    color: #6b7280;
+}
+
+.empty-state .add-vendor-btn {
+    margin-top: 1.5rem;
+}

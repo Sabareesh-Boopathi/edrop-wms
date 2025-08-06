@@ -56,6 +56,24 @@ def read_user_me(current_user: UserModel = Depends(deps.get_current_active_user)
         logger.error(f"❌ Token expired: {str(e)}")
         raise HTTPException(status_code=401, detail="Token has expired. Please log in again.")
 
+@router.get("/with-warehouses", response_model=List[User])
+def read_users_with_warehouses(
+    db: Session = Depends(deps.get_db),
+    current_user: UserModel = Depends(deps.get_current_active_superuser),
+):
+    """
+    Retrieve all users along with their warehouse details. (Admins only)
+    """
+    logger.info(f"ℹ️ Admin '{current_user.id}' listing all users with warehouses.")
+    users_with_warehouses = crud_user.user.get_all_with_warehouses(db)
+    return [
+        {
+            **user.__dict__,
+            "warehouse": warehouse.name if warehouse else None
+        }
+        for user, warehouse in users_with_warehouses
+    ]
+
 @router.get("/{user_id}", response_model=User)
 def read_user_by_id(
     user_id: uuid.UUID,

@@ -7,6 +7,8 @@ from app.api import deps
 from app.crud import crud_product
 from app.models.user import User
 from app.schemas.product import Product, ProductCreate, ProductUpdate
+from app.models.store_products import StoreProduct  # Import the StoreProduct model
+from app.schemas.store_products import StoreProduct as StoreProductSchema
 
 router = APIRouter()
 logger = logging.getLogger("app.api.endpoints.products")
@@ -75,3 +77,16 @@ def delete_product(
     deleted_product = crud_product.product.remove(db, id=product_id)
     logger.info(f"✅ Product '{deleted_product.id}' deleted successfully by admin '{current_user.id}'.")
     return deleted_product
+
+@router.get("/{product_id}/stores", response_model=List[StoreProductSchema])
+def get_product_stores(
+    product_id: uuid.UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    """
+    Retrieve all stores where the product is available.
+    """
+    logger.info(f"🔍 User '{current_user.id}' fetching stores for product '{product_id}'.")
+    stores = crud_product.product.get_stores(db, product_id=product_id)
+    return stores

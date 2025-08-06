@@ -24,3 +24,8 @@ export const updateUser = async (id: string, userData: Partial<UserSchema>): Pro
 export const deleteUser = async (id: string): Promise<void> => {
     await api.delete(`/users/${id}`);
 };
+
+export const getUsersWithWarehouses = async (): Promise<UserData[]> => {
+    const response = await api.get('/users/with-warehouses');
+    return response.data;
+};

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
-import { toast } from 'sonner';
 import './Login.css';
 
 const Login: React.FC = () => {
@@ -97,27 +96,6 @@ const Login: React.FC = () => {
       setIsLoading(false);
     }
   };
-
-  const handleTokenExpiration = () => {
-    toast.error('Session expired. Please log in again.');
-    setTimeout(() => navigate('/login'), 3000); // Redirect after 3 seconds
-  };
-
-  useEffect(() => {
-    const interceptor = api.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        if (error.response?.status === 401 && error.response?.data?.detail === 'Token has expired. Please log in again.') {
-          handleTokenExpiration();
-        }
-        return Promise.reject(error);
-      }
-    );
-
-    return () => {
-      api.interceptors.response.eject(interceptor);
-    };
-  }, []);
 
   return (
     <div className="login-container">

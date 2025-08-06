@@ -10,3 +10,5 @@ from .warehouse import Warehouse, WarehouseCreate, WarehouseUpdate
 from .order import Order, OrderCreate, OrderUpdate
 from .order_products import OrderProduct, OrderProductCreate, OrderProductUpdate
 from .milestone import Milestone, MilestoneCreate, MilestoneUpdate
+from .store import Store, StoreCreate, StoreUpdate
+from .store_products import StoreProduct, StoreProductCreate, StoreProductUpdate
