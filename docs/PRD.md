@@ -1,59 +1,50 @@
 # ✨ eDrop Warehouse Management System (WMS) – Product Requirements Document
 
-**Version:** 2.0
-**Date:** July 23, 2025
+**Version:** 2.1
+**Last Updated:** August 6, 2025
 **Status:** In Development
 
 ## 1. 🎯 Purpose & Vision
 
-To create a state-of-the-art, scalable Warehouse Management System (WMS) that serves as the operational backbone for eDrop's hyperlocal delivery network. The vision is to build a system that not only optimizes logistics but also champions sustainability, engages communities, and provides a seamless experience for all stakeholders—from vendors to the end customer's doorstep.
+To create a state-of-the-art, scalable Warehouse Management System (WMS) that serves as the operational backbone for eDrop's hyperlocal delivery network. The vision is to build a system that not only optimizes logistics but also provides a seamless, efficient, and empowering experience for all administrative and vendor stakeholders.
 
 ---
 
 ## 2. 🛠️ Technology Ecosystem
 
-This outlines the complete technical stack chosen to build and run the eDrop WMS.
+This outlines the complete technical stack chosen to build and run the eDrop WMS, balancing performance, scalability, and developer experience.
 
 | Layer          | Technology             | Purpose & Rationale                                          |
 |----------------|------------------------|--------------------------------------------------------------|
 | 🐍 **Backend**   | Python / FastAPI       | High-performance, modern, and ideal for future AI integration. |
-| 🐘 **Database**   | PostgreSQL             | Robust, reliable, and excellent for complex relational data.   |
-| ⚛️ **Web App**    | React.js               | Industry standard for building responsive, interactive UIs.    |
-| 🐦 **Mobile App**  | Flutter                | Cross-platform for iOS/Android, enabling rapid development.    |
-| ⚡ **Cache**      | Redis                  | For session storage, caching frequent queries, and rate limiting.|
-| 🔄 **Queue**       | Redis / Celery         | To manage background jobs like notifications and report generation.|
-| 🐳 **DevOps**      | Docker, GitHub Actions | For containerization, CI/CD, and ensuring consistent environments.|
-| 📊 **Monitoring** | Prometheus, Grafana    | For real-time system health monitoring and performance dashboards.|
-| 🔑 **Security**   | OAuth2 / JWT, RBAC     | Standard token-based authentication and role-based access control.|
-| 📷 **AI/ML**     | OpenCV, PyTorch        | For computer vision tasks like crate content validation.       |
+| 🐘 **Database**   | PostgreSQL / Alembic   | Robust, reliable, and version-controlled for schema changes.   |
+| ⚛️ **Web App**    | React.js / TypeScript  | For building a type-safe, responsive, and interactive UI.      |
+| 🐳 **DevOps**      | Docker, Docker Compose | For containerization and ensuring consistent environments.     |
+| 🔑 **Security**   | JWT, Role-Based Access | Standard token-based authentication and access control.        |
 
 ---
 
 ## 3. 🏛️ System Architecture
 
-The system is designed as a decoupled, service-oriented architecture to ensure scalability and maintainability.
+The system is designed as a decoupled, service-oriented architecture to ensure scalability, maintainability, and separation of concerns.
 
 ```
-+---------------------+      +----------------------+
-|   React Web App     |      |  Flutter Mobile App  |
-| (Admin/Vendor/Ops)  |      | (Ops/Delivery/User)  |
-+---------------------+      +----------------------+
-          |                            |
-          +--------------+-------------+
-                         |
-                         v
++---------------------+
+|   React Web App     |
+| (Admin/Vendor/Ops)  |
++---------------------+
+          |
+          v
 +----------------------------------------------------+
 |           🐍 FastAPI Backend API (Python)           |
-| (Business Logic, Auth, AI/ML, Notifications)       |
+| (Business Logic, Auth, CRUD Operations)            |
 +----------------------------------------------------+
-                         |
-           +-------------+----------------+
-           |             |                |
-           v             v                v
-+----------------+ +-------------+ +----------------+
-| 🐘 PostgreSQL  | | ⚡ Redis     | |  📷 AI Camera  |
-| (Primary DB)   | | (Cache/Queue) | | (Validation)   |
-+----------------+ +-------------+ +----------------+
+          |
+          v
++----------------+
+| 🐘 PostgreSQL  |
+| (Primary DB)   |
++----------------+
 ```
 
 ---
@@ -62,77 +53,71 @@ The system is designed as a decoupled, service-oriented architecture to ensure s
 
 This is the blueprint for our database schema, representing the key entities of the system.
 
-#### 🏢 `RWA` (Resident Welfare Association / Community)
-*Represents a gated community or apartment complex.*
-- `id` (UUID, PK)
-- `name` (String)
-- `address` (Text)
-- `city` (String)
-
-#### 🏠 `Flat`
-*Represents a single household or unit within an RWA.*
-- `id` (UUID, PK)
-- `rwa_id` (FK to `RWA`)
-- `tower_block` (String, e.g., "A")
-- `flat_number` (String, e.g., "1204")
-
 #### 👤 `User`
-*The central authentication entity. All people interacting with the system are Users.*
+*The central authentication entity for all administrative roles within the WMS.*
 - `id` (UUID, PK)
 - `name` (String)
-- `email` (String, Unique)
+- `email` (String, Unique, Indexed)
 - `hashed_password` (String)
-- `role` (Enum: `admin`, `warehouse_operator`, `vendor`, `delivery_agent`, `customer`)
-- `is_active` (Boolean)
+- `role` (Enum: `ADMIN`, `MANAGER`, `OPERATOR`, `VIEWER`)
+- `is_active` (Boolean, Default: `true`)
+- `created_at` (Timestamp)
+- `updated_at` (Timestamp)
 
-#### 🧑‍🤝‍🧑 `Customer`
-*The profile for a customer, linked to a User and a Flat.*
+#### 🏭 `Vendor`
+*Represents a third-party vendor or business entity supplying products.*
 - `id` (UUID, PK)
-- `user_id` (FK to `User`)
-- `flat_id` (FK to `Flat`)
-- `phone_number` (String, Unique)
+- `business_name` (String, Unique, Indexed)
+- `email` (String, Unique)
+- `phone_number` (String)
+- `vendor_type` (Enum: `SKU`, `FLAT`)
+- `vendor_status` (Enum: `ACTIVE`, `INACTIVE`, `KYC_PENDING`)
+- `created_at` (Timestamp)
+- `updated_at` (Timestamp)
 
-#### 🏭 `Warehouse`
-*Represents a physical micro-hub or warehouse location.*
+#### 🏪 `Store`
+*Represents a physical or virtual store owned and operated by a vendor.*
 - `id` (UUID, PK)
-- `name` (String)
-- `address` (Text)
-- `city` (String)
-- `manager_id` (FK to `User`, nullable)
+- `vendor_id` (FK to `Vendor`, Indexed)
+- `store_name` (String)
+- `address` (String)
+- `store_status` (Enum: `ACTIVE`, `INACTIVE`)
+- `created_at` (Timestamp)
+- `updated_at` (Timestamp)
 
 #### 📦 `Product`
-*An item sold by a vendor.*
+*A unique item or SKU that can be sold by vendors.*
 - `id` (UUID, PK)
 - `name` (String)
-- `sku` (String, Unique)
+- `sku` (String, Unique, Indexed)
+- `description` (Text, Nullable)
 - `price` (Decimal)
-- `vendor_id` (FK to `User` where role is `vendor`)
-
-#### 🛒 `Order`
-*A customer's order, containing multiple products.*
-- `id` (UUID, PK)
-- `customer_id` (FK to `Customer`)
-- `warehouse_id` (FK to `Warehouse`)
-- `status` (Enum: `pending`, `processing`, `out_for_delivery`, `delivered`, `cancelled`)
-- `total_amount` (Decimal)
 - `created_at` (Timestamp)
+- `updated_at` (Timestamp)
+
+#### 🔗 `StoreProduct`
+*The association table linking products to the stores that sell them, creating a many-to-many relationship.*
+- `store_id` (FK to `Store`, PK)
+- `product_id` (FK to `Product`, PK)
 
 ---
 
 ## 5. 📡 API Design Philosophy
 
-Our API will be clean, predictable, and easy to use, following RESTful best practices.
+Our API is designed to be clean, predictable, and easy to use, following RESTful best practices to ensure a great developer experience.
 
--   **Versioning:** All endpoints will be prefixed with `/api/v1/` to allow for future versions without breaking changes.
--   **Authentication:** Secure endpoints will expect an `Authorization: Bearer <JWT_TOKEN>` header.
--   **Data Format:** All request and response bodies will be in `JSON`.
--   **Status Codes:** We will use standard HTTP status codes to indicate success or failure (e.g., `200 OK`, `201 Created`, `400 Bad Request`, `404 Not Found`, `403 Forbidden`).
--   **Error Responses:** Failed requests will return a consistent JSON error object: `{"detail": "A clear, descriptive error message."}`.
+-   **Versioning:** All endpoints are prefixed with `/api/v1/` to allow for future, non-breaking API versions.
+-   **Authentication:** All secure endpoints expect an `Authorization: Bearer <JWT_TOKEN>` header for authentication.
+-   **Data Format:** All request and response bodies are in `JSON` format.
+-   **Status Codes:** We use standard HTTP status codes to indicate the outcome of a request (e.g., `200 OK`, `201 Created`, `400 Bad Request`, `404 Not Found`, `403 Forbidden`).
+-   **Error Responses:** Failed requests return a consistent JSON error object providing clear feedback: `{"detail": "A descriptive error message explaining what went wrong."}`.
 
-#### Example: Customer Management (`/api/v1/customers`)
-- `POST /customers`: Create a new customer profile.
-- `GET /customers/{customer_id}`: Get details for a specific customer.
-- `PUT /customers/{customer_id}`: Update a customer's details.
+#### Example Endpoint: Vendor Management (`/api/v1/vendors`)
+- `POST /vendors`: Create a new vendor. Requires Admin role.
+- `GET /vendors`: Retrieve a paginated list of all vendors.
+- `GET /vendors/{vendor_id}`: Get detailed information for a specific vendor.
+- `PUT /vendors/{vendor_id}`: Update a vendor's details. Requires Admin role.
+- `DELETE /vendors/{vendor_id}`: Deactivate a vendor. Requires Admin role.
 
 ---
 

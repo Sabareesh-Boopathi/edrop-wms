@@ -2,171 +2,104 @@
 
 ## Objective
 
-Deliver a functional, end-to-end MVP of the eDrop Warehouse Management System that demonstrates the core flows for vendors, warehouse staff, delivery agents, and customers, including basic marketplace, fleet, and sustainability features.
+Deliver a functional, end-to-end MVP of the eDrop Warehouse Management System that demonstrates the core flows for vendors, warehouse staff, and administrators, focusing on vendor and store management, product handling, and a consistent user interface.
 
 ---
 
 ## MVP Modules & Features
 
 ### 👤 1. User & Role Management
-- User registration/login (Warehouse Operator, Vendor, Delivery Agent, Customer, Admin)
-- Role-based access control
+- User registration/login (Admin, Warehouse Operator, Vendor)
+- Role-based access control for API endpoints and UI components.
 
-### 🏢 2. Warehouse Management
-- Create and manage warehouse profiles (e.g., name, address, contact info)
-- Associate warehouse operators with a specific warehouse
+### 🏢 2. Vendor Management
+- Onboard new vendors with detailed profiles (business name, contact info, status, etc.).
+- Full CRUD (Create, Read, Update, Delete) functionality for vendors.
+- A dedicated UI for viewing and managing all vendors.
 
-### 🏠 3. Customer & Flat Management
-- Create and manage customer profiles
-- Map customers to flats/apartments and RWAs
+### 🏪 3. Store Management
+- Allow vendors to create and manage multiple stores.
+- Each store has its own profile (name, address, operational hours).
+- Associate stores with vendors.
 
-### 🏪 4. Vendor & Product Management
-- Vendor onboarding (manual for MVP)
-- Vendor product listing (basic CRUD)
-- Product catalog visible to customers
+### 📦 4. Product Management
+- Enable vendors to add and manage products.
+- Normalize the relationship between stores and products using a `StoreProduct` association table.
+- Products have essential attributes like name, description, price, and SKU.
 
-### 🛒 5. Marketplace (E-commerce) Flow
-- Customers can browse products and place orders
-- Orders mapped to vendors and customer flats
-- Simple commission calculation per order
+### 💻 5. Frontend UI
+- A responsive and intuitive administrative dashboard built with React.js and TypeScript.
+- Consistent styling and component usage across different management pages (Users, Vendors, Warehouses).
+- Interactive tables, modals for editing/creating, and KPI cards for at-a-glance metrics.
 
-### 📥 5. Inbound Receiving & Storage
-- Warehouse operator can receive vendor shipments
-- Scan/enter items by SKU or flat
-- Assign items to bins/racks (manual SmartPut for MVP)
-- Real-time inventory update (per warehouse)
-
-### 📤 6. Outbound Picking & Packing
-- Generate pick lists by delivery slot/route (originating from a warehouse)
-- Operator confirms picks (mobile/web)
-- Assign items to UoD crates (manual for MVP)
-- Print basic labels (optional for MVP)
-
-### 🚚 7. Dispatch & Delivery Handoff
-- Assign orders/crates to delivery agents
-- Agent marks orders as dispatched/delivered
-
-### ↩️ 8. Returns & Exceptions
-- Operator can log returns and exceptions (damage, missing, etc.)
-- Inventory updated accordingly
-
-### 🚛 9. Fleet Management (Basic)
-- Register delivery agents and vehicles
-- Assign agents to routes
-- Track delivery status (manual update for MVP)
-
-### ♻️ 10. CO₂ Calculation & Gamification (Basic)
-- Calculate estimated CO₂ saved per consolidated delivery
-- Display simple ESG dashboard for admins
-- Award basic badges for crate returns or green deliveries
-
-### 📊 11. Reporting & Dashboards
-- Basic dashboards for inventory, orders, deliveries, and sustainability metrics
+### 🗃️ 6. Database & Migrations
+- A well-defined PostgreSQL database schema.
+- Use Alembic for managing and applying database migrations to keep the schema in sync with the models.
 
 ---
 
 ## ❌ Out of Scope for MVP
-- Full automation of SmartPut/SmartSlot logic
-- AI camera validation
-- Advanced gamification (leaderboards, complex rewards)
-- Payment gateway integration
-- Advanced notifications
+- Customer-facing marketplace and order flow.
+- Delivery agent and fleet management.
+- Advanced inventory management (e.g., real-time tracking, bin assignments).
+- CO₂ calculation and sustainability tracking.
+- Payment gateway integration.
 
 ---
 
-## ✨ Stretch Goals / Phase 2 (Optional for MVP)
-
-- **🤖 AI Camera Validation:** Integrate AI-based crate content validation.
-- **🧠 SmartPut/SmartSlot Automation:** Implement AI/algorithm-driven bin assignment.
-- **🏆 Advanced Gamification:** Add leaderboards and community challenges.
-- **🔮 Predictive Analytics:** Use AI/ML for demand forecasting.
+## ✨ Stretch Goals / Phase 2
+- **Marketplace Integration:** Build the customer-facing e-commerce flow.
+- **Advanced Inventory:** Implement detailed inventory tracking and warehouse automation features.
+- **Mobile App:** Develop the Flutter application for delivery agents and operators.
+- **Analytics & Reporting:** Create comprehensive dashboards for business intelligence.
 
 ---
 
 ## 🛠️ MVP Tech Stack
 
-- **Backend:** 🐍 Python/FastAPI, 🐘 PostgreSQL
-- **Web Frontend:** ⚛️ React.js
-- **Mobile App:** 🐦 Flutter
+- **Backend:** 🐍 Python/FastAPI, 🐘 PostgreSQL,  alembic
+- **Web Frontend:** ⚛️ React.js, TypeScript
 - **Auth:** 🔑 JWT
-- **DevOps:** 🐳 Docker, 🚀 GitHub Actions
-- **Other:** 📱 Manual barcode/QR entry
+- **DevOps:** 🐳 Docker, Docker Compose
 
 ---
 
 ## 🗺️ MVP Milestones
 
-1.  **🏗️ Project Setup & Repo Structure** (1 week)
-2.  **🔐 User, Role, and Auth Module** (1 week)
-3.  **🛍️ Vendor, Product, and Customer Management** (1 week)
-4.  **🛒 Marketplace & Order Flow** (2 weeks)
-5.  **📦 Warehouse Inbound/Outbound & Inventory** (2 weeks)
-6.  **🚚 Fleet & Delivery Management** (1 week)
-7.  **🏆 CO₂ & Gamification (Basic)** (1 week)
-8.  **📈 Dashboards & Reporting** (1 week)
-9.  **🧪 Testing, Bug Fixes, and Documentation** (1 week)
-10. **🚀 Pilot Deployment** (1 week)
-11. **🤖 (Optional) AI & Automation Integration** (2 weeks)
-
----
-
-## ✅ Success Criteria
-
-- End-to-end flow: Vendor → Warehouse → Customer → Delivery → Return
-- At least one RWA, one vendor, and one delivery agent can complete the full cycle
-- Basic dashboards and sustainability metrics visible to admin
-- Feedback from pilot users collected for next iteration
+1.  **🏗️ Project Setup & Backend Foundation** (Completed)
+2.  **🔐 User & Vendor Backend** (Completed)
+3.  **🏪 Store & Product Backend** (Completed)
+4.  **💻 Frontend UI for User & Vendor Management** (Completed)
+5.  **📦 Frontend UI for Store & Product Management** (In Progress)
+6.  **🧪 End-to-End Testing & Bug Fixes** (In Progress)
+7.  **🚀 Pilot Deployment** (Planned)
 
 ---
 
 ## 📈 Status Tracking
 
-| Module                        | Status      | Owner      | Notes                                      |
-|-------------------------------|-------------|------------|--------------------------------------------|
-| Project Setup                 | ✅ Completed |            | Docker, Python structure, Alembic, Test DB |
-| Core Data Models              | ✅ Completed |            | All DB tables created via Alembic          |
-| User & Role Management        | 🟢 Partially Completed |            | Backend API and test suite complete. Frontend pending.    |
-| Warehouse Management          | 🟢 Partially Completed |            | Backend API and test suite complete. Frontend pending.    |
-| Customer & Flat Management    | 🟢 Partially Completed |            | Backend API and test suite complete. Frontend pending.    |
-| Vendor & Product Management   | 🟢 Partially Completed |            | Backend API and test suite complete. Frontend pending.    |
-| Marketplace & Order Flow      | 🟢 Partially Completed |            | Backend API and test suite complete. Frontend pending.    |
-| Inbound/Outbound & Inventory  | ⚪ Not Started |            |                                            |
-| Fleet & Delivery Management   | 🟢 Partially Completed |            | Backend API complete. Frontend delivery tracking and fleet management UI added. |
-| CO₂ & Gamification            | ⚪ Not Started |            |                                            |
-| Dashboards & Reporting        | ⚪ Not Started |            |                                            |
-| Testing & Documentation       | ✅ Completed   |            | All backend tests passing. Documentation up to date. |
-| Pilot Deployment              | ⚪ Not Started |            |                                            |
-| AI & Automation (Stretch)     | ⚪ Not Started |            | Optional, post-core MVP                    |
-
-_Update this table as you progress._
-
----
-
-## ✅ Completed Initial Steps
-
-- Finalized core data models and database schema via Alembic.
-- Set up the project structure with Docker, FastAPI, and a test database.
-- Implemented the backend APIs for User, Customer, Vendor, Product, and Warehouse management.
-- Created the initial test suite structure for all core models.
+| Module                        | Status      | Notes                                      |
+|-------------------------------|-------------|--------------------------------------------|
+| Project Setup                 | ✅ Completed | Docker, FastAPI backend, React frontend.   |
+| Core Data Models              | ✅ Completed | User, Vendor, Store, Product models defined. |
+| User & Role Management        | ✅ Completed | Backend API and frontend UI are functional. |
+| Vendor & Store Management     | ✅ Completed | Backend API and frontend UI are functional. |
+| Product Management            | 🟢 In Progress | Backend API complete, frontend UI pending. |
+| Testing & Documentation       | 🟡 In Progress | Backend tests passing, documentation updated. |
+| Pilot Deployment              | ⚪ Not Started |                                            |
 
 ---
 
 ## 👉 Next Steps
 
-- **Backend Complete:** All core backend APIs and test suite are passing. Frontend work is now the priority.
 - **Frontend Development:**
-    - Set up React.js project structure and connect to backend APIs.
-    - Implement user login, registration, and role-based dashboard flows.
-    - Build vendor/product management UI and customer/flat management screens.
-    - Integrate order placement, order tracking, and basic inventory views.
-    - Add error handling, loading states, and basic form validation.
-    - Prepare for mobile app integration (Flutter) after web flows are stable.
+    - Complete the UI for managing products within stores.
+    - Refine the existing UI components for better reusability.
+    - Add comprehensive error handling and loading states.
+- **Backend Development:**
+    - Expand the test suite to cover more edge cases.
+    - Optimize database queries for performance.
 - **Deployment Planning:**
-    - Prepare Docker setup for frontend and backend.
-    - Configure environment variables and secrets for production.
-    - Set up CI/CD pipeline (GitHub Actions) for automated builds and tests.
-    - Plan pilot deployment (staging environment, test users, feedback loop).
-- **Documentation & Testing:**
-    - Update API and frontend documentation as new features are added.
-    - Expand test coverage for frontend components and integration flows.
-    - Collect feedback from pilot users and iterate on UI/UX.
+    - Finalize the Docker setup for production.
+    - Configure CI/CD pipelines for automated builds and deployments.
+    - Plan for a staging environment for pre-production testing.
