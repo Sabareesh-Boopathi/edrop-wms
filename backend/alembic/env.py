@@ -31,8 +31,8 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-# Import your app's Base model and the settings object
-from app.db.base import Base  # noqa
+# Import your app's Base model
+from app.db.base_class import Base  # Import Base and all models via db.base
 from app.core.config import settings # noqa
 
 # --- THIS IS THE FIX ---

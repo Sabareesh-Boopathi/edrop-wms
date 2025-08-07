@@ -5,6 +5,8 @@ from .base import CRUDBase
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from fastapi import HTTPException
+from sqlalchemy.orm import joinedload
+import uuid
 
 class CRUDWarehouse(CRUDBase[Warehouse, WarehouseCreate, WarehouseUpdate]):
     
@@ -69,5 +71,8 @@ class CRUDWarehouse(CRUDBase[Warehouse, WarehouseCreate, WarehouseUpdate]):
         db.commit()
         db.refresh(db_obj)
         return db_obj
+
+    def get_with_crates(self, db: Session, *, id: uuid.UUID) -> Warehouse:
+        return db.query(Warehouse).filter(Warehouse.id == id).options(joinedload(Warehouse.crates)).first()
 
 warehouse = CRUDWarehouse(Warehouse)

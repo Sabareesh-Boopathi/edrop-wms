@@ -1,9 +1,12 @@
+from __future__ import annotations  # Enable forward references
 import uuid
 from pydantic import BaseModel
 from decimal import Decimal
 from enum import Enum
 from datetime import date
-from typing import Optional
+from typing import Optional, List
+from app.schemas.crate import Crate
+from app.schemas.store import Store  # add relationship schema import
 
 class WarehouseStatus(str, Enum):
     ACTIVE = "ACTIVE"
@@ -49,5 +52,8 @@ class WarehouseUpdate(BaseModel):
 
 class Warehouse(WarehouseBase):
     id: uuid.UUID
+    crates: List[Crate] = []
+    store: Store | None = None  # relationship field
+
     class Config:
-        from_attributes = True
+        orm_mode = True

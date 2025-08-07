@@ -34,6 +34,7 @@ class Warehouse(Base):
         secondary='store_warehouse_association',
         back_populates='warehouses'
     )
+    crates = relationship("Crate", back_populates="warehouse")
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

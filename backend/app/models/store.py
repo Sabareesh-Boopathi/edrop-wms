@@ -9,15 +9,15 @@ store_warehouse_association = Table(
     'store_warehouse_association',
     Base.metadata,
     Column('store_id', UUID(as_uuid=True), ForeignKey('stores.id'), primary_key=True),
-    Column('warehouse_id', UUID(as_uuid=True), ForeignKey('warehouses.id'), primary_key=True),
-    extend_existing=True
+    Column('warehouse_id', UUID(as_uuid=True), ForeignKey('warehouses.id'), primary_key=True)
+    , extend_existing=True
 )
 
 class Store(Base):
     __tablename__ = 'stores'
     __table_args__ = (
         UniqueConstraint('store_name', name='uq_store_name'),
-        {'extend_existing': True}
+        {'extend_existing': True},
     )
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)

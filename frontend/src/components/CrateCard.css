@@ -1,0 +1,70 @@
+.crate-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 1rem;
+  transition: all 0.3s ease;
+  border-top: 4px solid transparent;
+  margin-bottom: 1.5rem;
+}
+
+.qr-code-container {
+  background-color: #fff;
+  padding: 8px;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+}
+
+.crate-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.crate-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.crate-card-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.crate-actions .edit-btn,
+.crate-actions .delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  margin-left: 0.5rem;
+  color: #6b7280;
+  transition: color 0.2s;
+}
+
+.crate-actions .edit-btn:hover {
+  color: #1d4ed8;
+}
+
+.crate-actions .delete-btn:hover {
+  color: #dc2626;
+}
+
+.crate-card-body {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.crate-details p {
+  margin: 0.5rem 0;
+  color: #374151;
+}
+
+.status-text {
+  font-weight: 600;
+  text-transform: capitalize;
+}

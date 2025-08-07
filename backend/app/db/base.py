@@ -17,3 +17,4 @@ from app.models.order_product import OrderProduct
 from app.models.vendor import Vendor
 from app.models.store import Store
 from app.models.milestone import Milestone
+from app.models.crate import Crate

@@ -8,6 +8,7 @@ from app.crud import crud_warehouse
 from app.models.user import User
 from app.schemas.warehouse import Warehouse, WarehouseCreate, WarehouseUpdate
 from app.schemas.store_products import StoreProduct as StoreProductSchema  # Import the StoreProduct schema
+from app.schemas.crate import Crate  # Import the Crate schema
 
 router = APIRouter()
 logger = logging.getLogger("app.api.endpoints.warehouses")
@@ -90,3 +91,24 @@ def get_warehouse_products(
     # Assuming a method exists to fetch products by warehouse
     products = crud_warehouse.warehouse.get_products(db, warehouse_id=warehouse_id)
     return products
+
+@router.get("/{warehouse_id}/crates", response_model=List[Crate])
+def get_warehouse_crates(
+    warehouse_id: uuid.UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    """
+    Retrieve all crates stored in a warehouse.
+    """
+    logger.info(f"🔍 User '{current_user.id}' fetching crates for warehouse '{warehouse_id}'.")
+    try:
+        warehouse = crud_warehouse.warehouse.get_with_crates(db, id=warehouse_id)
+        if not warehouse:
+            logger.warning(f"❌ Warehouse '{warehouse_id}' not found for crates request from user '{current_user.id}'.")
+            raise HTTPException(status_code=404, detail="Warehouse not found")
+        logger.info(f"✅ Crates for warehouse '{warehouse_id}' fetched successfully by user '{current_user.id}'.")
+        return warehouse.crates
+    except Exception as e:
+        logger.error(f"❌ Error fetching crates for warehouse '{warehouse_id}': {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")

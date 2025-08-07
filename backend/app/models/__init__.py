@@ -9,3 +9,5 @@ from .warehouse import Warehouse
 from .order import Order
 from .order_product import OrderProduct
 from .milestone import Milestone
+from .crate import Crate
+from .store import Store
