@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '../../components/ui/button';
-import { MoreHorizontal, PlusCircle, X, Users, Shield, UserCheck, Edit, Trash2, Mail, Phone, MapPin } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, X, Users, Shield, UserCheck, Edit, Trash2, Mail, Phone, MapPin, Store as StoreIcon } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from "react-hook-form";
@@ -9,17 +9,10 @@ import * as z from "zod";
 import { toast } from "sonner";
 import * as vendorService from '../../services/vendorService';
 import './Vendors.css';
-
-const EmptyState: React.FC<{ onAdd: () => void }> = ({ onAdd }) => (
-    <div className="empty-state">
-        <h2>No vendors found</h2>
-        <p>Add your first vendor to get started.</p>
-        <Button onClick={onAdd} className="add-vendor-btn">
-            <PlusCircle className="icon" />
-            Add New Vendor
-        </Button>
-    </div>
-);
+import EmptyState from '../../components/EmptyState';
+import KpiCard from '../../components/KpiCard';
+import VendorDetails from './VendorDetails';
+import { useConfig } from '../../contexts/ConfigContext';
 
 const VENDOR_STATUSES = ["ACTIVE", "INACTIVE", "KYC PENDING"] as const;
 const VENDOR_TYPES = ["SKU", "FLAT"] as const;
@@ -53,17 +46,40 @@ export type VendorData = {
     stores: any[];
 };
 
+type VendorSummary = {
+  id: string;
+  business_name: string;
+  vendor_type: VendorType | string;
+  vendor_status: VendorStatus | string;
+  store_count: number;
+  product_count: number;
+};
+
 const vendorSchemaValidation = (isEditMode: boolean) => baseVendorSchema.extend({
     password: isEditMode
       ? z.string().optional().nullable()
       : z.string().min(8, "Password must be at least 8 characters"),
 });
 
+const getErrorMessage = (error: any): string => {
+  const detail = error?.response?.data?.detail;
+  if (Array.isArray(detail)) {
+    const msgs = detail.map((d: any) => d?.msg || d?.message || (typeof d === 'string' ? d : JSON.stringify(d)));
+    return msgs.join('; ');
+  }
+  if (typeof detail === 'string') return detail;
+  if (detail && typeof detail === 'object') return detail.message || JSON.stringify(detail);
+  return error?.message || 'An error occurred';
+};
+
 const Vendors: React.FC = () => {
     const [vendors, setVendors] = useState<VendorData[]>([]);
+    const [summaries, setSummaries] = useState<VendorSummary[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedVendor, setSelectedVendor] = useState<VendorData | null>(null);
+    const [showVendorDetails, setShowVendorDetails] = useState(false);
+    const { formatDate } = useConfig();
 
     useEffect(() => {
         fetchVendors();
@@ -72,10 +88,14 @@ const Vendors: React.FC = () => {
     const fetchVendors = async () => {
         try {
             setIsLoading(true);
-            const data = await vendorService.getVendors();
+            const [data, summary] = await Promise.all([
+              vendorService.getVendors(),
+              vendorService.getVendorSummaries(),
+            ]);
             setVendors(data);
-        } catch (error) {
-            toast.error("Failed to fetch vendors.");
+            setSummaries(summary as VendorSummary[]);
+        } catch (error: any) {
+            toast.error(getErrorMessage(error));
             console.error(error);
         } finally {
             setIsLoading(false);
@@ -101,8 +121,8 @@ const Vendors: React.FC = () => {
                     await vendorService.deleteVendor(id);
                     setVendors(vendors.filter(v => v.id !== id));
                     toast.success("Vendor deleted successfully!");
-                } catch (error) {
-                    toast.error("Failed to delete vendor.");
+                } catch (error: any) {
+                    toast.error(getErrorMessage(error));
                     console.error(error);
                 }
               },
@@ -131,11 +151,7 @@ const Vendors: React.FC = () => {
             }
             setIsModalOpen(false);
         } catch (error: any) {
-            if (error.response && error.response.data && error.response.data.detail) {
-                toast.error(error.response.data.detail);
-            } else {
-                toast.error("An error occurred while saving the vendor.");
-            }
+            toast.error(getErrorMessage(error));
             console.error(error);
         }
     };
@@ -156,7 +172,14 @@ const Vendors: React.FC = () => {
     if (!isLoading && vendors.length === 0) {
         return (
             <div className="page-content">
-                <EmptyState onAdd={handleAddVendor} />
+                <EmptyState
+                  icon={<Users size={64} />}
+                  title="No Vendors Found"
+                  message="Get started by adding your first vendor to onboard products and manage supply."
+                  actionLabel="Add Your First Vendor"
+                  actionIcon={<PlusCircle className="icon" />}
+                  onAction={handleAddVendor}
+                />
                 <AnimatePresence>
                     {isModalOpen && (
                         <VendorModal
@@ -170,6 +193,11 @@ const Vendors: React.FC = () => {
         );
     }
 
+    const handleOpenVendorDetails = (vendor: VendorData) => {
+        setSelectedVendor(vendor);
+        setShowVendorDetails(true);
+    };
+
     return (
         <div className="page-content">
             <header className="header">
@@ -177,7 +205,7 @@ const Vendors: React.FC = () => {
                     <h1>Vendor Management</h1>
                     <p>Administer vendor profiles, types, and statuses across the platform.</p>
                 </div>
-                <Button onClick={handleAddVendor} className="add-vendor-btn">
+                <Button onClick={handleAddVendor} className="btn-primary-token">
                     <PlusCircle className="icon" />
                     Add New Vendor
                 </Button>
@@ -189,10 +217,38 @@ const Vendors: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, staggerChildren: 0.1 }}
             >
-                <KpiCard icon={<Users className="icon"/>} title="Total Vendors" value={kpiData.totalVendors.toString()} cardClass="kpi-card-1" />
-                <KpiCard icon={<UserCheck className="icon"/>} title="Active Vendors" value={kpiData.activeVendors.toString()} cardClass="kpi-card-2" />
-                <KpiCard icon={<Shield className="icon"/>} title="Vendor Types" value={kpiData.vendorTypes.toString()} cardClass="kpi-card-3" />
+                <KpiCard icon={<Users className="icon"/>} title="Total Vendors" value={kpiData.totalVendors} variant="indigo" />
+                <KpiCard icon={<UserCheck className="icon"/>} title="Active Vendors" value={kpiData.activeVendors} variant="emerald" />
+                <KpiCard icon={<Shield className="icon"/>} title="Vendor Types" value={kpiData.vendorTypes} variant="orange" />
             </motion.section>
+
+            {/* Modern vendor cards summary */}
+            <div className="vendor-cards-grid">
+              {summaries.map(s => (
+                <div key={s.id} className="vendor-card">
+                  <div className="vendor-card-header">
+                    <div>
+                      <div className="vendor-card-name">{s.business_name}</div>
+                      <div className="vendor-card-meta">
+                        <span className={`badge ${String(s.vendor_type).toLowerCase()}`}>{s.vendor_type}</span>
+                        <span className={`badge status ${String(s.vendor_status).toLowerCase().replace(' ', '-')}`}>{s.vendor_status}</span>
+                      </div>
+                    </div>
+                    <Button size="sm" className="btn-outline-token" onClick={() => handleOpenVendorDetails(vendors.find(v => v.id === s.id)!)}>Manage</Button>
+                  </div>
+                  <div className="vendor-card-body">
+                    <div className="metric">
+                      <div className="metric-label">Stores</div>
+                      <div className="metric-value">{s.store_count}</div>
+                    </div>
+                    <div className="metric">
+                      <div className="metric-label">Products</div>
+                      <div className="metric-value">{s.product_count}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
 
             <motion.div
                 className="card"
@@ -233,7 +289,7 @@ const Vendors: React.FC = () => {
                                         <StatusBadge status={vendor.vendor_status} />
                                     </td>
                                     <td className="text-right">
-                                        {new Date(vendor.created_at).toLocaleDateString()}
+                                        {formatDate(vendor.created_at)}
                                     </td>
                                     <td className="actions-cell">
                                         <DropdownMenu>
@@ -243,6 +299,10 @@ const Vendors: React.FC = () => {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end" className="dropdown-content">
+                                                <DropdownMenuItem onClick={() => handleOpenVendorDetails(vendor)} className="dropdown-item">
+                                                    <StoreIcon className="icon" />
+                                                    <span>Manage Stores & Products</span>
+                                                </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => handleEditVendor(vendor)} className="dropdown-item">
                                                     <Edit className="icon" />
                                                     <span>Edit</span>
@@ -270,21 +330,16 @@ const Vendors: React.FC = () => {
                     />
                 )}
             </AnimatePresence>
+            {showVendorDetails && selectedVendor && (
+                <VendorDetails
+                  vendor={{ id: selectedVendor.id, business_name: selectedVendor.business_name }}
+                  open={showVendorDetails}
+                  onClose={() => setShowVendorDetails(false)}
+                />
+            )}
         </div>
     );
 };
-
-const KpiCard: React.FC<{ icon: React.ReactNode, title: string, value: string, cardClass: string }> = ({ icon, title, value, cardClass }) => (
-    <motion.div className={`kpi-card ${cardClass}`}>
-        <div className="kpi-card-header">
-            <h4 className="kpi-card-title">{title}</h4>
-            <div className="kpi-card-icon">{icon}</div>
-        </div>
-        <div className="kpi-card-content">
-            <div className="kpi-card-value">{value}</div>
-        </div>
-    </motion.div>
-);
 
 const StatusBadge: React.FC<{ status: VendorStatus }> = ({ status }) => {
     const statusClassName = `status-${status.toLowerCase().replace(' ', '-')}`;
@@ -347,7 +402,7 @@ const VendorModal: React.FC<{ vendor: VendorData | null, onClose: () => void, on
                         <InputField name="email" label="Email Address" type="email" register={register} error={errors.email} placeholder="e.g., contact@acme.com" />
                         <InputField name="phone_number" label="Phone Number" register={register} error={errors.phone_number} placeholder="e.g., 9876543210" />
                         <InputField name="registered_address" label="Registered Address" register={register} error={errors.registered_address} placeholder="e.g., 123 Business Rd, Commerce City" />
-                        <InputField name="password" label="Password" type="password" register={register} error={errors.password} placeholder={vendor ? "Leave blank to keep current password" : "Enter a secure password"} />
+                        <InputField name="password" label="Password" type="password" register={register} error={errors.password} placeholder={vendor ? "Leave blank to keep current password" : "Enter a secure password" } />
 
                         <div className="form-group">
                             <label htmlFor="vendor_type">Vendor Type</label>
@@ -367,8 +422,8 @@ const VendorModal: React.FC<{ vendor: VendorData | null, onClose: () => void, on
                     </div>
 
                     <div className="modal-footer">
-                        <Button type="button" variant="outline" onClick={onClose} className="btn btn-outline">Cancel</Button>
-                        <Button type="submit" className="btn btn-primary">{vendor ? 'Save Changes' : 'Add Vendor'}</Button>
+                        <Button type="button" onClick={onClose} className="btn-outline-token">Cancel</Button>
+                        <Button type="submit" className="btn-primary-token">{vendor ? 'Save Changes' : 'Add Vendor'}</Button>
                     </div>
                 </form>
             </motion.div>

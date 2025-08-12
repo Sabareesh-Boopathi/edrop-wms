@@ -11,10 +11,20 @@ class CrateBase(BaseModel):
     warehouse_id: Optional[UUID] = None
 
 
-# Properties to receive on item creation
+# Properties to receive from client on creation (no name required)
+class CrateCreateRequest(BaseModel):
+    warehouse_id: UUID
+    type: Optional[CrateType] = CrateType.STANDARD
+    # Accept as string to allow legacy values like 'unavailable'; API maps to enum
+    status: Optional[str] = None
+
+
+# Internal properties to create DB record (server-generated name)
 class CrateCreate(CrateBase):
     name: str
     warehouse_id: UUID
+    # Allow API layer to set an initial status (falls back to model default if None)
+    status: Optional[CrateStatus] = None
 
 
 # Properties to receive on item update
@@ -33,6 +43,7 @@ class CrateInDBBase(CrateBase):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 
 # Properties to return to client

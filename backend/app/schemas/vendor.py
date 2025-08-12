@@ -1,10 +1,10 @@
 # filepath: c:\Users\priya\Projects\eDrop-UrbanHive\edrop-wms\backend\app\schemas\vendor.py
 import uuid
 from pydantic import BaseModel
-from decimal import Decimal
 from datetime import datetime
-from typing import Any, List
+from typing import List
 from enum import Enum
+from app.schemas.store import Store  # Use concrete Store schema for serialization
 
 class VendorStatus(str, Enum):
     ACTIVE = "ACTIVE"
@@ -23,13 +23,11 @@ class VendorBase(BaseModel):
     registered_address: str | None = None
     vendor_type: VendorType
     vendor_status: VendorStatus
-    password: str
-    created_at: datetime
-    updated_at: datetime
-    stores: List[Any] = []  # Define a proper store schema if needed
+    # NOTE: Do NOT include password or timestamps in base (common) schema used for input/output
 
 class VendorCreate(VendorBase):
-    pass
+    # Only required on creation
+    password: str
 
 class VendorUpdate(BaseModel):
     business_name: str | None = None
@@ -43,6 +41,21 @@ class VendorUpdate(BaseModel):
 
 class Vendor(VendorBase):
     id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+    # Use proper schema to ensure serializable output
+    stores: List[Store] = []
 
     class Config:
-        orm_mode = True
+        # Pydantic v2 compatibility for ORM models
+        from_attributes = True
+
+class VendorSummary(BaseModel):
+    id: uuid.UUID
+    business_name: str
+    email: str | None = None
+    phone_number: str | None = None
+    vendor_type: VendorType
+    vendor_status: VendorStatus
+    store_count: int
+    product_count: int

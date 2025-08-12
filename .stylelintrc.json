@@ -1,0 +1,27 @@
+{
+  "extends": ["stylelint-config-standard"],
+  "rules": {
+    "color-no-hex": [true, {
+      "severity": "warning",
+      "message": "Use CSS variables from tokens.css instead of hex colors"
+    }],
+    "declaration-property-value-disallowed-list": {
+      "/^border(-.*)?$/": ["none"],
+      "message": "Avoid border: none; prefer border-color: transparent for focus accessibility"
+    },
+    "selector-disallowed-list": [
+      [
+        ".btn-primary",
+        ".btn-outline",
+        ".btn-cancel",
+        ".edrop-btn",
+        ".edrop-btn-outline",
+        ".add-vendor-btn"
+      ],
+      {
+        "message": "Legacy button class disallowed. Use token utilities (.btn-primary-token, .btn-outline-token, etc.)."
+      }
+    ]
+  },
+  "ignoreFiles": ["**/theme/tokens.css"]
+}

@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
+from app.schemas.store_products import StoreProduct as StoreProductSchema
 
 class ProductBase(BaseModel):
     name: str
@@ -11,7 +12,7 @@ class ProductBase(BaseModel):
     price: float
 
 class ProductCreate(ProductBase):
-    pass
+    vendor_id: UUID
 
 class ProductUpdate(BaseModel):
     name: str | None = None
@@ -20,7 +21,7 @@ class ProductUpdate(BaseModel):
 
 class Product(ProductBase):
     id: UUID
-    store_products: List["StoreProduct"] = []  # Updated to reflect the relationship with StoreProduct
+    store_products: List[StoreProductSchema] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True

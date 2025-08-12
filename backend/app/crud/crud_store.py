@@ -5,6 +5,7 @@ from app.models.store import Store
 from app.models.store_products import StoreProduct
 from app.schemas.store import Store as StoreSchema, StoreCreate, StoreUpdate
 from app.services.milestone_service import check_and_create_milestone, MilestoneEventType, MilestoneEntityType
+from app.models.vendor import Vendor
 import uuid
 
 class CRUDStore(CRUDBase[Store, StoreCreate, StoreUpdate]):
@@ -20,9 +21,9 @@ class CRUDStore(CRUDBase[Store, StoreCreate, StoreUpdate]):
         db.commit()
         db.refresh(db_obj)
 
-        # Handle many-to-many relationship with StoreProduct
-        if obj_in.products:
-            for product_data in obj_in.products:
+        # Handle many-to-many relationship with StoreProduct if provided
+        if hasattr(obj_in, "products") and getattr(obj_in, "products"):
+            for product_data in getattr(obj_in, "products"):
                 store_product = StoreProduct(
                     store_id=db_obj.id,
                     product_id=product_data.product_id,
@@ -31,20 +32,36 @@ class CRUDStore(CRUDBase[Store, StoreCreate, StoreUpdate]):
                     bin_code=product_data.bin_code
                 )
                 db.add(store_product)
-        db.commit()
+            db.commit()
 
-        # Milestone creation logic
+        # Milestone creation logic (system-level store count) - reuse VENDOR_COUNT event type
         total_stores = db.query(Store).count()
         check_and_create_milestone(
             db,
-            event_type=MilestoneEventType.STORE_COUNT,
-            entity_type=MilestoneEntityType.STORE,
+            event_type=MilestoneEventType.VENDOR_COUNT,
+            entity_type=MilestoneEntityType.SYSTEM,
             entity_id=str(db_obj.id),
             current_count=total_stores,
             description=f"🎉 Hurray! {total_stores} stores strong and still growing!",
             title="Store Milestone",
             milestone_type="store_count"
         )
+
+        # Vendor-scoped store count milestone
+        if db_obj.vendor_id:
+            vendor_store_count = db.query(Store).filter(Store.vendor_id == db_obj.vendor_id).count()
+            vendor = db.query(Vendor).get(db_obj.vendor_id)
+            vendor_name = vendor.business_name if vendor else "Vendor"
+            check_and_create_milestone(
+                db,
+                event_type=MilestoneEventType.VENDOR_COUNT,
+                entity_type=MilestoneEntityType.VENDOR,
+                entity_id=str(db_obj.vendor_id),
+                current_count=vendor_store_count,
+                description=f"🏪 {vendor_name} now has {vendor_store_count} stores!",
+                title=f"{vendor_name} Store Milestone",
+                milestone_type="vendor_store_count",
+            )
 
         return db_obj
 
@@ -61,13 +78,13 @@ class CRUDStore(CRUDBase[Store, StoreCreate, StoreUpdate]):
             update_data = obj_in.dict(exclude_unset=True, exclude={"products"})
 
         for field, value in update_data.items():
-            setattr(db_obj, field, value)
+            if hasattr(db_obj, field):
+                setattr(db_obj, field, value)
 
-        # Update many-to-many relationship with StoreProduct
-        if isinstance(obj_in, StoreUpdate) and obj_in.products is not None:
-            # Clear existing relationships
+        # Update many-to-many relationship with StoreProduct if provided
+        if not isinstance(obj_in, dict) and hasattr(obj_in, "products") and getattr(obj_in, "products") is not None:
             db.query(StoreProduct).filter(StoreProduct.store_id == db_obj.id).delete()
-            for product_data in obj_in.products:
+            for product_data in getattr(obj_in, "products"):
                 store_product = StoreProduct(
                     store_id=db_obj.id,
                     product_id=product_data.product_id,

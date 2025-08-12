@@ -13,6 +13,8 @@ import LocationPicker from '../../components/LocationPicker';
 import * as warehouseService from '../../services/warehouseService';
 import Celebration from '../../components/Celebration';
 import './WarehouseManagement.css';
+import EmptyState from '../../components/EmptyState';
+import KpiCard from '../../components/KpiCard';
 
 const WAREHOUSE_STATUSES_TUPLE = ["ACTIVE", "INACTIVE", "NEAR_CAPACITY"] as const;
 
@@ -158,7 +160,14 @@ const WarehouseManagement: React.FC = () => {
 	if (!isLoading && warehouses.length === 0) {
 		return (
 			<div className="page-content">
-				<EmptyState onAdd={handleAddWarehouse} />
+				<EmptyState
+				  icon={<Home size={64} />}
+				  title="No Warehouses Found"
+				  message="Get started by adding your first warehouse. Track inventory, manage capacity, and streamline your operations."
+				  actionLabel="Add Your First Warehouse"
+				  actionIcon={<PlusCircle className="icon" />}
+				  onAction={handleAddWarehouse}
+				/>
 				<AnimatePresence>
 					{isModalOpen && (
 						<WarehouseModal
@@ -192,10 +201,10 @@ const WarehouseManagement: React.FC = () => {
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.5, staggerChildren: 0.1 }}
 			>
-				<KpiCard icon={<Home className="icon"/>} title="Active Warehouses" value={kpiData.count.toString()} cardClass="kpi-card-1" />
-                <KpiCard icon={<Building className="icon"/>} title="Total Area" value={`${(kpiData.totalSize / 1000).toFixed(1)}k sqft`} cardClass="kpi-card-2" />
-				<KpiCard icon={<Package className="icon"/>} title="Total Capacity" value={`${(kpiData.totalCapacity / 1000).toFixed(0)}k units`} cardClass="kpi-card-3" />
-				<KpiCard icon={<BarChart2 className="icon"/>} title="Overall Utilization" value={`${kpiData.overallUtilization}%`} cardClass="kpi-card-4" />
+				<KpiCard icon={<Home className="icon"/>} title="Active Warehouses" value={kpiData.count} variant="indigo" />
+                <KpiCard icon={<Building className="icon"/>} title="Total Area" value={`${(kpiData.totalSize / 1000).toFixed(1)}k sqft`} variant="emerald" />
+				<KpiCard icon={<Package className="icon"/>} title="Total Capacity" value={`${(kpiData.totalCapacity / 1000).toFixed(0)}k units`} variant="orange" />
+				<KpiCard icon={<BarChart2 className="icon"/>} title="Overall Utilization" value={`${kpiData.overallUtilization}%`} variant="cyan" />
 			</motion.section>
 
 			<div className="main-grid">
@@ -308,20 +317,6 @@ const WarehouseManagement: React.FC = () => {
 	);
 };
 
-const KpiCard: React.FC<{ icon: React.ReactNode, title: string, value: string, cardClass: string }> = ({ icon, title, value, cardClass }) => (
-	<motion.div className={`kpi-card ${cardClass}`}>
-		<div className="kpi-card-header">
-			<h4 className="kpi-card-title">{title}</h4>
-			<div className="kpi-card-icon">
-			 {icon}
-			</div>
-		</div>
-		<div className="kpi-card-content">
-			<div className="kpi-card-value">{value}</div>
-		</div>
-	</motion.div>
-);
-
 const StatusBadge: React.FC<{ status: WarehouseStatus }> = ({ status }) => {
 	const statusClassName = `status-${status.replace(/_/g, '-').toLowerCase()}`;
 	return (
@@ -331,24 +326,6 @@ const StatusBadge: React.FC<{ status: WarehouseStatus }> = ({ status }) => {
 		</span>
 	);
 };
-
-const EmptyState: React.FC<{ onAdd: () => void }> = ({ onAdd }) => (
-	<div className="empty-state">
-		<div className="empty-state-content">
-			<div className="empty-state-icon">
-				<Package size={64} />
-			</div>
-			<h2 className="empty-state-title">No Warehouses Found</h2>
-			<p className="empty-state-message">
-				Get started by adding your first warehouse. Track inventory, manage capacity, and streamline your operations.
-			</p>
-			<Button onClick={onAdd} className="add-warehouse-btn">
-				<PlusCircle className="icon" />
-				Add Your First Warehouse
-			</Button>
-		</div>
-	</div>
-);
 
 const WarehouseModal: React.FC<{ warehouse: Warehouse | null, onClose: () => void, onSave: (data: WarehouseSchema) => void }> = ({ warehouse, onClose, onSave }) => {
     const [isMapOpen, setIsMapOpen] = useState(false);
@@ -454,8 +431,8 @@ const WarehouseModal: React.FC<{ warehouse: Warehouse | null, onClose: () => voi
 					</div>
 
 					<div className="modal-footer">
-						<Button type="button" variant="outline" onClick={onClose} className="btn btn-outline">Cancel</Button>
-						<Button type="submit" className="btn btn-primary">{warehouse ? 'Save Changes' : 'Add Warehouse'}</Button>
+						<Button type="button" onClick={onClose} className="btn-outline-token">Cancel</Button>
+						<Button type="submit" className="btn-primary-token">{warehouse ? 'Save Changes' : 'Add Warehouse'}</Button>
 					</div>
 				</form>
 			</motion.div>

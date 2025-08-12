@@ -11,21 +11,8 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { Crate, CrateStatus, Warehouse } from '../../types';
 import './CrateManagement.css';
-
-// Define the Crate type
-// interface Crate {
-//   id: string;
-//   name: string;
-//   qr_code: string;
-//   status: 'active' | 'in_use' | 'reserved' | 'damaged' | 'inactive';
-//   type: 'standard' | 'refrigerated' | 'large';
-//   warehouse_id: string;
-// }
-
-// interface Warehouse {
-//   id: string;
-//   name: string;
-// }
+import EmptyState from '../../components/EmptyState';
+import KpiCard from '../../components/KpiCard';
 
 const CrateManagement: React.FC = () => {
   const [crates, setCrates] = useState<Crate[]>([]);
@@ -62,13 +49,15 @@ const CrateManagement: React.FC = () => {
   const handleSaveCrate = async (data: { name: string; warehouse_id: string; count: number; type?: "standard" | "refrigerated" | "large"; status?: CrateStatus }) => {
     try {
       if (editingCrate) {
-        await updateCrate(editingCrate.id, { name: data.name, warehouse_id: data.warehouse_id, type: data.type, status: data.status });
+        // Do not send name; it's auto-generated and read-only
+        await updateCrate(editingCrate.id, { warehouse_id: data.warehouse_id, type: data.type, status: data.status });
         toast.success('Crate updated successfully!');
-      } else {
-        const newCrates = [];
+    } else {
+        const newCrates: Crate[] = [];
         for (let i = 0; i < data.count; i++) {
-          const crateName = data.count > 1 ? `${data.name} ${i + 1}` : data.name;
-          const newCrate = await createCrate({ name: crateName, warehouse_id: data.warehouse_id, type: data.type ?? 'standard' });
+          // Let the backend generate the crate name/QR based on warehouse config
+          const normalizedStatus = (data.status || '').toString().toLowerCase() === 'unavailable' ? 'inactive' : data.status;
+          const newCrate = await createCrate({ warehouse_id: data.warehouse_id, type: data.type ?? 'standard', status: normalizedStatus });
           newCrates.push(newCrate);
         }
         if (newCrates.length > 1) {
@@ -76,8 +65,9 @@ const CrateManagement: React.FC = () => {
         }
         toast.success(`${newCrates.length} crate(s) created successfully!`);
       }
-    } catch (error) {
-      toast.error('Failed to save crate.');
+    } catch (error: any) {
+      const msg = error?.response?.data?.detail || 'Failed to save crate.';
+      toast.error(msg);
     } finally {
       setEditingCrate(null);
       setIsCreating(false);
@@ -141,40 +131,6 @@ const CrateManagement: React.FC = () => {
     return { totalCrates, activeCrates, inUseCrates, damagedCrates };
   }, [crates, selectedWarehouse, filteredByWarehouse]);
 
-  const EmptyState: React.FC<{ onAdd: () => void }> = ({ onAdd }) => (
-    <div className="empty-state">
-      <div className="empty-state-content">
-        <div className="empty-state-icon">
-          <Package size={64} />
-        </div>
-        <h2 className="empty-state-title">No Crates Found</h2>
-        <p className="empty-state-message" style={{ marginBottom: '1.5rem' }}>
-          Get started by adding your first crate. Organize your inventory and improve warehouse efficiency.
-        </p>
-        <div className="empty-state-button-wrapper" style={{ display: 'flex', justifyContent: 'center' }}>
-          <Button onClick={onAdd} className="add-crate-btn">
-            <PlusCircle className="icon" />
-            Add Your First Crate
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const SearchResultEmptyState: React.FC = () => (
-    <div className="empty-state">
-      <div className="empty-state-content">
-        <div className="empty-state-icon">
-          <SearchX size={64} />
-        </div>
-        <h2 className="empty-state-title">No Crates Found</h2>
-        <p className="empty-state-message">
-          No crates found matching your search criteria.
-        </p>
-      </div>
-    </div>
-  );
-
   return (
     <div className="crate-management">
       {isCreating || editingCrate ? (
@@ -189,7 +145,14 @@ const CrateManagement: React.FC = () => {
       ) : (
         <>
           {crates.length === 0 ? (
-            <EmptyState onAdd={() => setIsCreating(true)} />
+            <EmptyState
+              icon={<Package size={64} />}
+              title="No Crates Found"
+              message="Get started by adding your first crate. Organize your inventory and improve warehouse efficiency."
+              actionLabel="Add Your First Crate"
+              actionIcon={<PlusCircle className="icon" />}
+              onAction={() => setIsCreating(true)}
+            />
           ) : (
             <>
               <header className="header">
@@ -219,10 +182,10 @@ const CrateManagement: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, staggerChildren: 0.1 }}
               >
-                <KpiCard icon={<Package />} title="Total Crates" value={kpiData.totalCrates.toString()} cardClass="kpi-card-1" />
-                <KpiCard icon={<Archive />} title="Active" value={kpiData.activeCrates.toString()} cardClass="kpi-card-2" />
-                <KpiCard icon={<Package />} title="In Use" value={kpiData.inUseCrates.toString()} cardClass="kpi-card-3" />
-                <KpiCard icon={<AlertTriangle />} title="Damaged" value={kpiData.damagedCrates.toString()} cardClass="kpi-card-4" />
+                <KpiCard icon={<Package />} title="Total Crates" value={kpiData.totalCrates} variant="indigo" />
+                <KpiCard icon={<Archive />} title="Active" value={kpiData.activeCrates} variant="emerald" />
+                <KpiCard icon={<Package />} title="In Use" value={kpiData.inUseCrates} variant="orange" />
+                <KpiCard icon={<AlertTriangle />} title="Damaged" value={kpiData.damagedCrates} variant="cyan" />
               </motion.section>
 
               <div className="filter-section">
@@ -258,7 +221,11 @@ const CrateManagement: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <SearchResultEmptyState />
+                <EmptyState
+                  icon={<SearchX size={64} />}
+                  title="No Crates Found"
+                  message="No crates found matching your search criteria."
+                />
               )}
             </>
           )}
@@ -267,17 +234,5 @@ const CrateManagement: React.FC = () => {
     </div>
   );
 };
-
-const KpiCard: React.FC<{ icon: React.ReactNode, title: string, value: string, cardClass?: string }> = ({ icon, title, value, cardClass }) => (
-	<motion.div className={`kpi-card ${cardClass}`}>
-		<div className="kpi-card-header">
-			<h4 className="kpi-card-title">{title}</h4>
-			<div className="kpi-card-icon">{icon}</div>
-		</div>
-		<div className="kpi-card-content">
-			<div className="kpi-card-value">{value}</div>
-		</div>
-	</motion.div>
-);
 
 export default CrateManagement;

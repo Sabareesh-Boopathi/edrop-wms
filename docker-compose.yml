@@ -2,8 +2,8 @@ services:
   backend:
     # This entrypoint calls the script AND passes "postgres" as the first argument.
     entrypoint: ["/usr/local/bin/wait-for-postgres.sh", "postgres"]
-    # This command is passed to the script after the database is ready.
-    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    # Run DB migrations before starting the server
+    command: ["sh", "-c", "alembic upgrade heads && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"]
     build:
       context: .
       dockerfile: backend/Dockerfile

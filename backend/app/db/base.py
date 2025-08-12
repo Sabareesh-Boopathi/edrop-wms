@@ -18,3 +18,11 @@ from app.models.vendor import Vendor
 from app.models.store import Store
 from app.models.milestone import Milestone
 from app.models.crate import Crate
+from app.models.system_config import SystemConfig
+from app.models.warehouse_config import WarehouseConfig
+# Added missing model imports so Alembic sees full metadata
+from app.models.rack import Rack
+from app.models.bin import Bin
+from app.models.notification import Notification
+from app.models.store_products import StoreProduct
+from app.models.audit_log import AuditLog

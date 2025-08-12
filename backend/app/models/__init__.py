@@ -11,3 +11,6 @@ from .order_product import OrderProduct
 from .milestone import Milestone
 from .crate import Crate
 from .store import Store
+from .rack import Rack
+from .bin import Bin
+from .notification import Notification

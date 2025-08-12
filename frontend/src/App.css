@@ -1,7 +1,7 @@
-.App {
-  text-align: center;
-  background-color: #f0f2f5; /* Add a light background color */
-}
+@import url('./theme/tokens.css');
+@import url('./theme/utilities.css');
+
+.App { text-align: center; background-color: var(--color-bg); }
 
 .App-logo {
   height: 40vmin;
@@ -15,7 +15,7 @@
 }
 
 .App-header {
-  background-color: #282c34;
+  background-color: #282c34; /* keep legacy dark header; could be themed later */
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -25,14 +25,13 @@
   color: white;
 }
 
-.App-link {
-  color: #61dafb;
-}
+.App-link { color: var(--color-info); }
 
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }

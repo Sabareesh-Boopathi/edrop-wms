@@ -1,0 +1,118 @@
+@import url('./WarehouseManagement.css');
+@import url('./CrateManagement.css');
+
+.bin-management-container {
+    padding: 2rem;
+    background-color: #f8f9fa;
+}
+
+.page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.warehouse-toggle-buttons { margin-bottom: 1rem; }
+
+.warehouse-toggle-btn {
+    background-color: #fff;
+    border: 1px solid #d1d5db;
+    padding: 0.6rem 1rem;
+    margin-right: 0.5rem;
+    cursor: pointer;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.warehouse-toggle-btn.active { background-color: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+
+.racks-grid, .crate-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: flex-end; /* bottom align varying heights */
+}
+
+.error-message { color: #ef4444; }
+
+/* Accordion header styling */
+.accordion-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fff;
+    border: 0;
+    border-bottom: 1px solid #eef2f7;
+    padding: 14px 16px;
+    cursor: pointer;
+    border-radius: 12px 12px 0 0;
+}
+
+.badge {
+    background: #f1f5f9;
+    color: #0f172a;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.add-warehouse-btn.small {
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+}
+
+/* Filters bar */
+.filters-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin: 12px 0 18px;
+}
+
+.filter-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    padding: 8px 10px;
+    border-radius: 10px;
+}
+
+.filter-item.input input {
+    border: 0;
+    outline: none;
+    font-size: 14px;
+}
+
+.filter-item.pills .pill {
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    color: #111827;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+}
+
+.filter-item.pills .pill.active {
+    background: #111827;
+    color: #fff;
+    border-color: #111827;
+}
+
+.filter-item.select select {
+    border: 0;
+    outline: none;
+    background: transparent;
+    font-size: 14px;
+}
+
+/* DnD */
+.dnd-wrapper.dragging {
+    opacity: 0.6;
+    transform: scale(0.98);
+}

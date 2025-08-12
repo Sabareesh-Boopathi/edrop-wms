@@ -1,4 +1,4 @@
-import React, { useState, ChangeEvent, useMemo, useRef } from 'react';
+import React, { useState, ChangeEvent, useMemo, useRef, useEffect } from 'react';
 // Utility to print a specific DOM node
 function printElement(element: HTMLElement) {
   const printWindow = window.open('', '', 'width=400,height=600');
@@ -29,6 +29,8 @@ import QRCode from 'react-qr-code';
 import './CrateEditor.css';
 import crateImage from '../assets/crate.png';
 import { Crate, Warehouse, BulkCrate, CrateStatus, CrateType, CRATE_STATUSES, CRATE_TYPES } from '../types';
+import { useConfig } from '../contexts/ConfigContext';
+import { getWarehouseConfig } from '../services/configService';
 
 interface CrateEditorProps {
   warehouses: Warehouse[];
@@ -47,29 +49,58 @@ const CrateEditor: React.FC<CrateEditorProps> = ({
     bulkCrates = [],
     onPrintAll
 }) => {
+  const { config } = useConfig();
+  const defaultType = (config.defaultCrateSize as CrateType) || 'standard';
+  const defaultStatus: CrateStatus = (config.defaultCrateStatus as CrateStatus) || 'inactive';
+
   const [warehouseId, setWarehouseId] = useState(crate ? crate.warehouse_id : '');
-  const [name, setName] = useState(crate ? crate.name : '');
+  const [name, setName] = useState(crate ? crate.name : 'Auto-generated');
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const [count, setCount] = useState(1);
-  const [status, setStatus] = useState<CrateStatus>(crate ? crate.status : 'available');
-  const [type, setType] = useState<CrateType>(crate ? crate.type : 'standard');
+  const [status, setStatus] = useState<CrateStatus>(crate ? crate.status : defaultStatus);
+  const [type, setType] = useState<CrateType>(crate ? crate.type : defaultType);
 
-  // Helper to get warehouse code (for now, always WH1)
-  const getWarehouseCode = () => {
-    if (!warehouseId) return 'WH1';
-    // In future, map warehouseId to code from admin config
-    return 'WH1';
-  };
+  const isEditMode = !!crate;
 
-  // Helper to generate crate name by index
-  const generateCrateName = (index: number) => {
-    const whCode = getWarehouseCode();
-    return `${whCode}-CR-${String(index + 1).padStart(5, '0')}`;
-  };
+  // Show preview name for new crates using warehouse config nextCrateSeq
+  useEffect(() => {
+    let active = true;
+    const loadPreview = async () => {
+      if (isEditMode) return; // editing shows actual existing name
+      if (!warehouseId) {
+        setName('Auto-generated');
+        return;
+      }
+      try {
+        setPreviewError(null);
+        const cfg = await getWarehouseConfig(warehouseId);
+        const short = (cfg.shortCode || '').toUpperCase();
+        const prefix = (cfg.cratePrefix || 'CRT').toUpperCase();
+        const suffix = (cfg.crateSuffix || '').toUpperCase();
+        let seq = parseInt(String(cfg.nextCrateSeq || 1), 10);
+        if (isNaN(seq) || seq < 1 || seq > 9999) seq = 1;
+        const core = short ? `${short}-${prefix}-${String(seq).padStart(4, '0')}` : `${prefix}-${String(seq).padStart(4, '0')}`;
+        const preview = suffix ? `${core}-${suffix}` : core;
+        if (!short) {
+          setPreviewError('Warehouse short code missing in System Configuration');
+        }
+        if (active) setName(preview);
+      } catch (e) {
+        if (active) {
+          setName('Auto-generated');
+          setPreviewError('Unable to load warehouse configuration');
+        }
+      }
+    };
+    loadPreview();
+    return () => { active = false; };
+  }, [warehouseId, isEditMode]);
 
-  // Set initial name for new crate
+  // Set initial name for new crate based on warehouse config (readonly; server will generate final)
   React.useEffect(() => {
     if (!crate) {
-      setName(generateCrateName(0));
+      // Keep placeholder until preview loads
+      if (!warehouseId) setName('Auto-generated');
     }
   }, [warehouseId, crate]);
   const labelRef = useRef<HTMLDivElement>(null);
@@ -80,8 +111,6 @@ const CrateEditor: React.FC<CrateEditorProps> = ({
     }
   };
 
-  const isEditMode = !!crate;
-
   // Bulk crate state
   const [generatedCrates, setGeneratedCrates] = useState<BulkCrate[]>([]);
 
@@ -90,18 +119,22 @@ const CrateEditor: React.FC<CrateEditorProps> = ({
       alert("Please select a warehouse.");
       return;
     }
+    const maxStack = Number(config.maxStackHeight || 0);
+    const maxBinsPer = Number(config.maxBinsPerRack || 0);
+    if (!isEditMode && count > 1 && (maxStack > 0 || maxBinsPer > 0)) {
+      const limit = Math.max(maxStack, maxBinsPer);
+      if (limit > 0 && count > limit) {
+        alert(`Count exceeds configured limit (${limit}).`);
+        return;
+      }
+    }
+
     if (isEditMode) {
       onSave({ name, warehouse_id: warehouseId, count: 1, type, status });
       return;
     }
-    // Bulk create
-    const crates: BulkCrate[] = Array.from({ length: count }, (_, i) => ({
-      name: generateCrateName(i),
-      qr_code: `${getWarehouseCode()}-QR-${String(i + 1).padStart(5, '0')}` // Placeholder QR, replace with real logic
-    }));
-    setGeneratedCrates(crates);
-    setName(crates[0].name);
-    onSave({ name: crates[0].name, warehouse_id: warehouseId, count });
+    // Bulk create: do not generate names; backend will generate
+    onSave({ name: 'Auto-generated', warehouse_id: warehouseId, count, type: defaultType, status: defaultStatus });
   };
 
   const currentStatus = useMemo(() => crate?.status || status, [crate, status]);
@@ -123,6 +156,11 @@ const CrateEditor: React.FC<CrateEditorProps> = ({
                 <QRCode value={generatedCrates[0].qr_code} size={50} level="L" />
               </div>
             )}
+            {!isEditMode && generatedCrates.length === 0 && (
+              <div className="qr-code-container-small" title="Preview">
+                <QRCode value={name} size={50} level="L" />
+              </div>
+            )}
             <div className="label-name-small">{name}</div>
           </div>
           <div className={`status-overlay status-badge status-${currentStatus}`}>
@@ -137,15 +175,11 @@ const CrateEditor: React.FC<CrateEditorProps> = ({
             <h2 className="text-2xl font-bold text-gray-800">{isEditMode ? 'Edit Crate' : 'Create Crates'}</h2>
           </div>
           <div className="form-group">
-            <label htmlFor="crate-name">Name</label>
-            <Input 
-              id="crate-name"
-              className="input"
-              value={name} 
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)} 
-              placeholder="e.g., WH1-CR-00001"
-              disabled={!isEditMode && generatedCrates.length > 0}
-            />
+            <label>
+              Crate Name
+              <span title={previewError ? previewError : 'Preview based on System Configuration. Final value is assigned on save.'}> ⓘ</span>
+            </label>
+            <input type="text" value={name} readOnly style={{ background: 'var(--color-surface-muted)', cursor: 'not-allowed' }} />
           </div>
           <div className="form-group">
             <label htmlFor="warehouse-select">Warehouse</label>
@@ -196,16 +230,15 @@ const CrateEditor: React.FC<CrateEditorProps> = ({
             </div>
           )}
           <div className="actions">
-            <Button type="button" onClick={onCancel} className="btn btn-outline">
+            <Button type="button" onClick={onCancel} className="btn-outline-token">
                 <X className="mr-2 h-4 w-4" /> Cancel
             </Button>
-            <Button type="submit" className="btn btn-primary" disabled={!name || !warehouseId || (!isEditMode && generatedCrates.length > 0)}>
+            <Button type="submit" className="btn-primary-token" disabled={!warehouseId || (!isEditMode && generatedCrates.length > 0)}>
                 {isEditMode ? 'Save Changes' : `Create ${count} Crate(s)`}
             </Button>
             <Button
               type="button"
-              variant="outline"
-              className="btn"
+              className="btn-outline-token"
               onClick={handlePrint}
               disabled={(!isEditMode && generatedCrates.length === 0) || (isEditMode && !crate)}
             >
@@ -215,8 +248,7 @@ const CrateEditor: React.FC<CrateEditorProps> = ({
             {!isEditMode && generatedCrates.length > 0 && (
               <Button
                 type="button"
-                variant="outline"
-                className="btn"
+                className="btn-outline-token"
                 onClick={() => {
                   // Bulk print all generated labels
                   const printWindow = window.open('', '', 'width=600,height=800');

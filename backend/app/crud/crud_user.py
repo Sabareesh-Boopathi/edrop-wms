@@ -45,15 +45,17 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             # Check for warehouse-level user count milestones (if warehouse_id is provided)
             if db_obj.warehouse_id:
                 warehouse_user_count = db.query(User).filter(User.warehouse_id == db_obj.warehouse_id).count()
+                wh = db.query(Warehouse).get(db_obj.warehouse_id)
+                wh_name = wh.name if wh else "Warehouse"
                 check_and_create_milestone(
                     db,
                     event_type=MilestoneEventType.CUSTOMER_COUNT,
                     entity_type=MilestoneEntityType.CUSTOMER,
                     entity_id=str(db_obj.warehouse_id),
                     current_count=warehouse_user_count,
-                    description="🎉 A new warehouse-specific user milestone has been reached!",
-                    title="Warehouse User Registration Milestone",
-                    milestone_type="customer_count",
+                    description=f"🎉 {wh_name} reached {warehouse_user_count} users!",
+                    title=f"{wh_name} User Milestone",
+                    milestone_type="warehouse_user_count",
                     warehouse_id=str(db_obj.warehouse_id)
                 )
 

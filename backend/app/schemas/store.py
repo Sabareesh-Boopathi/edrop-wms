@@ -22,16 +22,22 @@ class StoreBase(BaseModel):
 
 # Schema for creating a store
 class StoreCreate(StoreBase):
-    pass
+    vendor_id: UUID
 
 # Schema for updating a store
 class StoreUpdate(StoreBase):
     store_name: str | None = None
+    address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    store_status: Optional[str] = None
 
 # Schema for reading a store
 class Store(StoreBase):
     id: UUID
-    store_products: List['StoreProduct'] = []  # Updated to reflect the relationship with StoreProduct
+    vendor_id: UUID
+    # Use concrete import instead of forward-ref string to prevent unresolved type issues
+    store_products: List[StoreProduct] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True

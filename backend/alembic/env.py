@@ -32,7 +32,9 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 # Import your app's Base model
-from app.db.base_class import Base  # Import Base and all models via db.base
+from app.db.base_class import Base  # Base class
+# IMPORTANT: import app.db.base so all models are registered on Base.metadata
+import app.db.base  # noqa: F401
 from app.core.config import settings # noqa
 
 # --- THIS IS THE FIX ---

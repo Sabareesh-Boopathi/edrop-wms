@@ -3,6 +3,7 @@ from typing import Generator, Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt
+from jose.exceptions import ExpiredSignatureError
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 import logging
@@ -39,6 +40,14 @@ def get_current_user(
             token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
         )
         token_data = schemas.TokenPayload(**payload)
+    except ExpiredSignatureError:
+        # Avoid stack trace spam for expected expiry events
+        log.warning("Token expired.")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     except (jwt.JWTError, ValidationError):
         log.error("Error decoding token or validating token schema.", exc_info=True)
         raise HTTPException(

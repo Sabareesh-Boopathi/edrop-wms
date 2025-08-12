@@ -19,11 +19,10 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Upgrade schema."""
-    op.add_column('users', sa.Column('status', sa.String(length=50), nullable=False, server_default='ACTIVE'))
-    op.execute("UPDATE users SET status = 'ACTIVE' WHERE status IS NULL")
+    """No-op: status was added in a previous revision (e86b760036e4)."""
+    pass
 
 
 def downgrade() -> None:
-    """Downgrade schema."""
-    op.drop_column('users', 'status')
+    """No-op to avoid dropping existing status column."""
+    pass

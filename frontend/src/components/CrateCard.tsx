@@ -16,25 +16,22 @@ interface CrateCardProps {
 }
 
 const CrateCard: React.FC<CrateCardProps> = ({ crate, onEdit, onDelete }) => {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return '#52c41a';
-      case 'in_use':
-        return '#1890ff';
-      case 'reserved':
-        return '#faad14';
-      case 'damaged':
-        return '#f5222d';
-      default:
-        return '#d9d9d9';
+  // Map status to semantic class; colors handled in CSS via tokens
+  const statusClass = (s: string) => {
+    switch (s) {
+      case 'active': return 'status-active';
+      case 'in_use': return 'status-inuse';
+      case 'reserved': return 'status-reserved';
+      case 'damaged': return 'status-damaged';
+      case 'inactive': return 'status-inactive';
+      default: return 'status-unknown';
     }
   };
 
   return (
-    <div className="crate-card" style={{ borderTop: `5px solid ${getStatusColor(crate.status)}` }}>
+  <div className={`crate-card ${statusClass(crate.status)}`} data-status={crate.status}>
       <div className="crate-card-header">
-        <h3>{crate.name.toUpperCase()}</h3>
+        <h3 title="Server-generated based on System Configuration">{crate.name.toUpperCase()}</h3>
         <div className="crate-actions">
           <button onClick={() => onEdit(crate.id)} className="edit-btn"><Edit size={16} /></button>
           <button onClick={() => onDelete(crate.id)} className="delete-btn"><Trash2 size={16} /></button>
@@ -42,11 +39,11 @@ const CrateCard: React.FC<CrateCardProps> = ({ crate, onEdit, onDelete }) => {
       </div>
       <div className="crate-card-body">
         <div className="qr-code-container">
-          <QRCode value={crate.name} size={80} level="L" />
+          <QRCode value={crate.qr_code || crate.name} size={80} level="L" />
         </div>
         <div className="crate-details">
           <p><strong>Type:</strong> {crate.type}</p>
-          <p><strong>Status:</strong> <span className="status-text" style={{ color: getStatusColor(crate.status) }}>{crate.status}</span></p>
+          <p><strong>Status:</strong> <span className={`status-text ${statusClass(crate.status)}`}>{crate.status}</span></p>
         </div>
       </div>
     </div>

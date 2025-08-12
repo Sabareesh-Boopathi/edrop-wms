@@ -1,12 +1,29 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import ResponseValidationError
+from fastapi import Request
 from app.api.api import api_router
 from app.core.config import settings
 from app.core.logging_config import setup_logging
+from app.db.session import SessionLocal
+from app.crud.crud_user import user as crud_user
+from app.schemas.user import UserCreate, UserRole, UserStatus
+import logging
+
+# Try to import Pydantic v2 core exceptions if available
+try:
+    from pydantic_core import PydanticSerializationError
+except Exception:  # pragma: no cover - fallback if import path changes
+    class PydanticSerializationError(Exception):
+        pass
+
+from pydantic import ValidationError as PydanticValidationError
 
 # Call the setup function right at the start
 setup_logging()
+logger = logging.getLogger("app")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -14,17 +31,47 @@ app = FastAPI(
     openapi_url=f"/api/v1/openapi.json"
 )
 
-# Set all CORS enabled origins
-if settings.BACKEND_CORS_ORIGINS:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+# Set all CORS enabled origins (fallback to permissive for local dev)
+origins = settings.BACKEND_CORS_ORIGINS or [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+# If wildcard requested, allow all
+allow_all = any(o == "*" for o in origins)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"] if allow_all else origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(api_router, prefix="/api/v1")
+
+# Bootstrap superuser on startup (idempotent)
+@app.on_event("startup")
+def create_superuser_if_missing():
+    if not settings.SUPERUSER_EMAIL or not settings.SUPERUSER_PASSWORD:
+        return
+    db = SessionLocal()
+    try:
+        existing = crud_user.get_by_email(db, email=settings.SUPERUSER_EMAIL)
+        if existing:
+            return
+        obj = UserCreate(
+            email=settings.SUPERUSER_EMAIL,
+            name=settings.SUPERUSER_NAME or "Admin",
+            password=settings.SUPERUSER_PASSWORD,
+            role=UserRole(settings.SUPERUSER_ROLE.upper()),
+            status=UserStatus(settings.SUPERUSER_STATUS.upper()),
+            phone_number=settings.SUPERUSER_PHONE,
+            address=settings.SUPERUSER_ADDRESS,
+        )
+        crud_user.create(db, obj_in=obj)
+    finally:
+        db.close()
 
 # Custom OpenAPI schema to ensure Bearer Authentication is visible
 def custom_openapi():
@@ -60,3 +107,44 @@ app.openapi = custom_openapi
 def read_root():
     """A simple health check endpoint."""
     return {"status": f"{settings.PROJECT_NAME} is running"}
+
+# ------------------------
+# Global exception handlers
+# ------------------------
+
+@app.exception_handler(ResponseValidationError)
+async def handle_response_validation_error(request: Request, exc: ResponseValidationError):
+    logger.exception("Response validation error: %s", exc)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Response validation error",
+            "errors": exc.errors(),
+        },
+    )
+
+@app.exception_handler(PydanticValidationError)
+async def handle_pydantic_validation_error(request: Request, exc: PydanticValidationError):
+    logger.exception("Pydantic validation error: %s", exc)
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": exc.errors(),
+        },
+    )
+
+@app.exception_handler(PydanticSerializationError)
+async def handle_pydantic_serialization_error(request: Request, exc: PydanticSerializationError):
+    logger.exception("Pydantic serialization error: %s", exc)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": f"Serialization error: {str(exc)}",
+        },
+    )
+
+@app.exception_handler(Exception)
+async def handle_unexpected_error(request: Request, exc: Exception):
+    # Let FastAPI's default HTTPException handler do its job; this is for unexpected exceptions
+    logger.exception("Unhandled server error: %s", exc)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error", "message": str(exc)})

@@ -11,18 +11,9 @@ import { toast } from "sonner";
 import * as userService from '../../services/userService';
 import { getWarehouses } from '../../services/warehouseService';
 import './UsersAndRoles.css';
-
-// Simple EmptyState component definition
-const EmptyState: React.FC<{ onAdd: () => void }> = ({ onAdd }) => (
-    <div className="empty-state">
-        <h2>No users found</h2>
-        <p>Add your first user to get started.</p>
-        <Button onClick={onAdd} className="add-user-btn">
-            <PlusCircle className="icon" />
-            Add New User
-        </Button>
-    </div>
-);
+import EmptyState from '../../components/EmptyState';
+import KpiCard from '../../components/KpiCard';
+import { useConfig } from '../../contexts/ConfigContext';
 
 const USER_STATUSES_TUPLE = ["ACTIVE", "INACTIVE", "PENDING"] as const;
 const ROLE_TUPLE = ["ADMIN", "MANAGER", "OPERATOR", "VIEWER"] as const;
@@ -60,6 +51,7 @@ const UsersAndRoles: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+    const { formatDate } = useConfig();
 
     useEffect(() => {
         fetchUsersWithWarehouses();
@@ -160,7 +152,14 @@ const UsersAndRoles: React.FC = () => {
     if (!isLoading && users.length === 0) {
         return (
             <div className="page-content">
-                <EmptyState onAdd={handleAddUser} />
+                <EmptyState
+                  icon={<Users size={64} />}
+                  title="No Users Found"
+                  message="Get started by adding your first user. Assign roles and manage access across the platform."
+                  actionLabel="Add Your First User"
+                  actionIcon={<PlusCircle className="icon" />}
+                  onAction={handleAddUser}
+                />
                 <AnimatePresence>
                     {isModalOpen && (
                         <UserModal
@@ -193,9 +192,9 @@ const UsersAndRoles: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, staggerChildren: 0.1 }}
             >
-                <KpiCard icon={<Users className="icon"/>} title="Total Users" value={kpiData.totalUsers.toString()} cardClass="kpi-card-1" />
-                <KpiCard icon={<UserCheck className="icon"/>} title="Active Users" value={kpiData.activeUsers.toString()} cardClass="kpi-card-2" />
-                <KpiCard icon={<Shield className="icon"/>} title="System Roles" value={kpiData.totalRoles.toString()} cardClass="kpi-card-3" />
+                <KpiCard icon={<Users className="icon"/>} title="Total Users" value={kpiData.totalUsers} variant="indigo" />
+                <KpiCard icon={<UserCheck className="icon"/>} title="Active Users" value={kpiData.activeUsers} variant="emerald" />
+                <KpiCard icon={<Shield className="icon"/>} title="System Roles" value={kpiData.totalRoles} variant="orange" />
             </motion.section>
 
             <motion.div
@@ -237,7 +236,7 @@ const UsersAndRoles: React.FC = () => {
                                         <StatusBadge status={user.status} />
                                     </td>
                                     <td className="text-right last-login-text">
-                                        {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'N/A'}
+                                        {user.last_login ? formatDate(user.last_login) : 'N/A'}
                                     </td>
                                     <td className="actions-cell">
                                         <DropdownMenu>
@@ -277,20 +276,6 @@ const UsersAndRoles: React.FC = () => {
         </div>
     );
 };
-
-const KpiCard: React.FC<{ icon: React.ReactNode, title: string, value: string, cardClass: string }> = ({ icon, title, value, cardClass }) => (
-    <motion.div className={`kpi-card ${cardClass}`}>
-        <div className="kpi-card-header">
-            <h4 className="kpi-card-title">{title}</h4>
-            <div className="kpi-card-icon">
-             {icon}
-            </div>
-        </div>
-        <div className="kpi-card-content">
-            <div className="kpi-card-value">{value}</div>
-        </div>
-    </motion.div>
-);
 
 const StatusBadge: React.FC<{ status: UserStatus }> = ({ status }) => {
     const statusClassName = `status-${status.toLowerCase()}`;
@@ -482,8 +467,8 @@ const UserModal: React.FC<{ user: UserData | null, onClose: () => void, onSave: 
                     </div>
 
                     <div className="modal-footer">
-                        <Button type="button" variant="outline" onClick={onClose} className="btn btn-outline">Cancel</Button>
-                        <Button type="submit" className="btn btn-primary">{user ? 'Save Changes' : 'Add User'}</Button>
+                        <Button type="button" onClick={onClose} className="btn-outline-token">Cancel</Button>
+                        <Button type="submit" className="btn-primary-token">{user ? 'Save Changes' : 'Add User'}</Button>
                     </div>
                 </form>
             </motion.div>

@@ -1,0 +1,80 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from app.api import deps
+from app.crud.crud_config import config as crud_config
+from app.crud.crud_audit import audit as crud_audit
+from app.schemas.audit_log import AuditLog as AuditLogSchema
+from app.schemas.config import SystemConfigSchema, WarehouseConfigSchema
+from app.models.user import User
+
+router = APIRouter()
+
+@router.get("/system/config", response_model=SystemConfigSchema)
+def get_system_config(
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    data = crud_config.get_system(db)
+    if not data:
+        # return sensible defaults if not set, aligned with frontend
+        return SystemConfigSchema(
+            appName="eDrop WMS",
+            defaultTimeZone="Asia/Kolkata",
+            dateFormat="DD-MM-YYYY",
+            timeFormat="24h",
+            defaultLanguage="en",
+            defaultRackStatus="active",
+        )
+    return SystemConfigSchema(**data)
+
+@router.put("/system/config", response_model=SystemConfigSchema)
+def put_system_config(
+    payload: SystemConfigSchema,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_superuser),
+):
+    saved = crud_config.upsert_system(db, data=payload.model_dump(), actor_user_id=str(current_user.id))
+    return SystemConfigSchema(**saved)
+
+@router.get("/warehouses/{warehouse_id}/config", response_model=WarehouseConfigSchema)
+def get_warehouse_config(
+    warehouse_id: str,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    data = crud_config.get_warehouse(db, warehouse_id)
+    if not data:
+        raise HTTPException(status_code=404, detail="Config not found")
+    return WarehouseConfigSchema(**data)
+
+@router.put("/warehouses/{warehouse_id}/config", response_model=WarehouseConfigSchema)
+def put_warehouse_config(
+    warehouse_id: str,
+    payload: WarehouseConfigSchema,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_superuser),
+):
+    saved = crud_config.upsert_warehouse(db, warehouse_id, data=payload.model_dump(), actor_user_id=str(current_user.id))
+    return WarehouseConfigSchema(**saved)
+
+@router.get("/system/audit", response_model=list[AuditLogSchema])
+def get_system_audit(
+    limit: int = 100,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_superuser),
+):
+    records = crud_audit.list_recent(db, limit=limit)
+    result = []
+    for rec in records:
+        # Convert UUID fields to str for Pydantic
+        data = {
+            'id': str(rec.id),
+            'actor_user_id': str(rec.actor_user_id),
+            'entity_type': rec.entity_type,
+            'entity_id': rec.entity_id,
+            'action': rec.action,
+            'changes': rec.changes,
+            'created_at': rec.created_at,
+        }
+        result.append(AuditLogSchema(**data))
+    return result

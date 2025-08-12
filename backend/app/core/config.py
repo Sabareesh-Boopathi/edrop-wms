@@ -31,6 +31,15 @@ class Settings(BaseSettings):
     DATABASE_URL: str = ""
     TEST_DATABASE_URL: str = ""
 
+    # --- SUPERUSER bootstrap (optional) ---
+    SUPERUSER_EMAIL: str | None = None
+    SUPERUSER_PASSWORD: str | None = None
+    SUPERUSER_NAME: str | None = None
+    SUPERUSER_ROLE: str = "ADMIN"
+    SUPERUSER_STATUS: str = "ACTIVE"
+    SUPERUSER_PHONE: str | None = None
+    SUPERUSER_ADDRESS: str | None = None
+
     @root_validator(pre=False, skip_on_failure=True)
     def assemble_db_urls(cls, v: Dict[str, Any]) -> Dict[str, Any]:
         """

@@ -3,12 +3,13 @@ set -e
 
 host="$1"
 shift
-cmd="$@"
 
-until pg_isready -h "$host" -U "$POSTGRES_USER"; do
+# Wait for Postgres to be ready
+until pg_isready -h "$host" -U "${DB_USER:-$POSTGRES_USER}"; do
   >&2 echo "Postgres is unavailable - sleeping"
   sleep 1
 done
 
 >&2 echo "Postgres is up - executing command"
-exec $cmd
+# Preserve argv so constructs like: sh -c "alembic upgrade head && uvicorn ..." work
+exec "$@"

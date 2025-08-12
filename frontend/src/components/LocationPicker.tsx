@@ -133,7 +133,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({ onClose, onLocationSele
             <div className="selected-coords">
                 Lat: {position[0].toFixed(4)}, Lng: {position[1].toFixed(4)}
             </div>
-            <Button onClick={handleLocationSelect} className="btn btn-primary">
+            <Button onClick={handleLocationSelect} className="btn-primary-token">
                 <MapPin className="icon" />
                 Confirm Location
             </Button>

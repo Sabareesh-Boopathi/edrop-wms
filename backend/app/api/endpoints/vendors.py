@@ -27,6 +27,39 @@ def read_own_vendor_profile(
     logger.info(f"✅ Vendor profile found for user {current_user.email} (id: {current_user.id})")
     return vendor
 
+@router.get("/summary", response_model=List[schemas.VendorSummary])
+def list_vendor_summaries(
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_active_user)
+) -> Any:
+    """Return vendors with store_count and product_count (across their stores)."""
+    vendors = crud.vendor.get_multi(db)
+    result: list[schemas.VendorSummary] = []
+    for v in vendors:
+        store_count = db.query(models.Store).filter(models.Store.vendor_id == v.id).count()
+        # Count distinct products across all stores for this vendor
+        from app.models.store_products import StoreProduct
+        product_count = (
+            db.query(StoreProduct.product_id)
+            .join(models.Store, StoreProduct.store_id == models.Store.id)
+            .filter(models.Store.vendor_id == v.id)
+            .distinct()
+            .count()
+        )
+        result.append(
+            schemas.VendorSummary(
+                id=v.id,
+                business_name=v.business_name,
+                email=v.email,
+                phone_number=v.phone_number,
+                vendor_type=v.vendor_type,
+                vendor_status=v.vendor_status,
+                store_count=store_count,
+                product_count=product_count,
+            )
+        )
+    return result
+
 @router.get("/{vendor_id}", response_model=schemas.Vendor)
 def read_vendor_by_id(
     vendor_id: str,

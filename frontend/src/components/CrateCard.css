@@ -1,7 +1,7 @@
 .crate-card {
-  background-color: #ffffff;
+  background-color: #fff;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 5%);
   padding: 1rem;
   transition: all 0.3s ease;
   border-top: 4px solid transparent;
@@ -12,13 +12,13 @@
   background-color: #fff;
   padding: 8px;
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 10%);
   border: 1px solid #e5e7eb;
 }
 
 .crate-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 10%);
 }
 
 .crate-card-header {
@@ -68,3 +68,18 @@
   font-weight: 600;
   text-transform: capitalize;
 }
+
+/* Status color theming */
+.crate-card.status-active { border-top-color: var(--color-success); }
+.crate-card.status-inuse { border-top-color: var(--color-info); }
+.crate-card.status-reserved { border-top-color: var(--color-warn); }
+.crate-card.status-damaged { border-top-color: var(--color-error); }
+.crate-card.status-inactive { border-top-color: var(--color-inactive); }
+.crate-card.status-unknown { border-top-color: var(--color-border); }
+
+.status-text.status-active { color: var(--color-success); }
+.status-text.status-inuse { color: var(--color-info); }
+.status-text.status-reserved { color: var(--color-warn); }
+.status-text.status-damaged { color: var(--color-error); }
+.status-text.status-inactive { color: var(--color-inactive); }
+.status-text.status-unknown { color: var(--color-text-soft); }

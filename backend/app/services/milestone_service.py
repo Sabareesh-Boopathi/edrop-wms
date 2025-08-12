@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.crud.crud_milestone import milestone as crud_milestone
 from app.schemas.milestone import MilestoneCreate
 from app.models.milestone import MilestoneEventType, MilestoneEntityType
+from app.models.warehouse import Warehouse
 import logging
 
 logger = logging.getLogger(__name__)
@@ -41,35 +42,59 @@ def check_and_create_milestone(
     
     next_milestone_value = get_next_milestone(current_count)
 
+    # Resolve warehouse context (name) if provided
+    wh_name: str | None = None
+    if warehouse_id:
+        try:
+            wh = db.query(Warehouse).get(warehouse_id)
+            if wh:
+                wh_name = wh.name
+        except Exception:
+            wh_name = None
+    else:
+        # Fallback: try entity_id when it represents a warehouse (e.g., creation event)
+        try:
+            wh = db.query(Warehouse).get(entity_id)
+            if wh:
+                wh_name = wh.name
+        except Exception:
+            wh_name = None
+
+    # Ensure warehouse creation milestones are tied to the warehouse entity for manager notifications
     if event_type == MilestoneEventType.WAREHOUSE_CREATED:
         milestone_in = MilestoneCreate(
             event_type=event_type,
-            entity_type=entity_type,
+            entity_type=MilestoneEntityType.WAREHOUSE,  # force warehouse entity type
             related_entity_id=str(entity_id),
-            milestone_value=current_count,  # Directly use the current count as the milestone value
-            description=description,
-            title=title,  # Pass the title to the milestone creation
-            milestone_type=milestone_type,  # Pass milestone_type to the milestone creation
+            milestone_value=current_count,
+            description=description or (f"🏗️ A new warehouse '{wh_name or 'Warehouse'}' has been added to the eco-system! 🏢"),
+            title=title or (f"Warehouse created: {wh_name}" if wh_name else "Warehouse creation milestone"),
+            milestone_type=milestone_type or "warehouse_creation",
             user_id=user_id,
         )
-        logger.info(f"🎯 {description}]")
+        logger.info(f"🎯 {milestone_in.description}")
         crud_milestone.create(db, obj_in=milestone_in)
         return
-    
+
     if current_count == next_milestone_value:
         try:
+            effective_entity_type = MilestoneEntityType.WAREHOUSE if warehouse_id else entity_type
             milestone_in = MilestoneCreate(
                 event_type=event_type,
-                entity_type=entity_type,
-                entity_id=str(warehouse_id) if warehouse_id else str(entity_id),
+                entity_type=effective_entity_type,
+                related_entity_id=str(warehouse_id) if warehouse_id else str(entity_id),
                 milestone_value=next_milestone_value,
-                description=description,
+                description=description or (
+                    f"🎉 {(wh_name + ' ') if wh_name else ''}milestone reached: {milestone_type or event_type} ⇒ {next_milestone_value}"
+                ),
                 user_id=user_id,
-                title=title,
-                milestone_type=milestone_type,
+                title=title or (
+                    f"{wh_name} Milestone" if wh_name else "Milestone"
+                ),
+                milestone_type=milestone_type or ("warehouse_" + str(event_type)) if warehouse_id else str(event_type),
             )
             crud_milestone.create(db, obj_in=milestone_in)
-            logger.info(f"🎯 {description}]")
+            logger.info(f"🎯 {milestone_in.description}")
         except Exception as e:
             context = "Warehouse" if warehouse_id else "System"
             logger.error(f"Failed to create {context}-level milestone: {e}")
