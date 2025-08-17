@@ -21,6 +21,8 @@ class SystemConfigSchema(BaseModel):
     apiToken: Optional[str] = None
     autoGenerateMissingIds: Optional[bool] = None
     dataSyncIntervalMins: Optional[int] = None
+    # Inbound policies
+    inboundOversPolicy: Optional[dict] = None
 
     class Config:
         from_attributes = True
@@ -34,6 +36,10 @@ class WarehouseConfigSchema(BaseModel):
     nextRackSeq: int
     rackPrefix: Optional[str] = None
     nextBinSeq: int
+    # Inbound Receipts sequence per-warehouse
+    nextReceiptSeq: Optional[int] = None
+    # Inbound Receipt ID prefix (used when generating codes)
+    receiptPrefix: Optional[str] = None
     serviceAreaRangeKm: Optional[int] = 0
     dockBayCount: Optional[int] = 0
     maxCratesCapacity: Optional[int] = 0
@@ -45,6 +51,8 @@ class WarehouseConfigSchema(BaseModel):
     utilizationAlertThreshold: Optional[int] = 80
     rackLabelTemplate: Optional[str] = None
     crateLabelTemplate: Optional[str] = None
+    # Inbound policies (warehouse-level override)
+    inboundOversPolicy: Optional[dict] = None
 
     class Config:
         from_attributes = True

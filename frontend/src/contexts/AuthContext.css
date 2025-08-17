@@ -1,0 +1,7 @@
+
+.session-overlay { position: fixed; inset: 0; z-index: 1000; }
+.session-overlay-backdrop { position: absolute; inset: 0; backdrop-filter: blur(3px); background: rgba(15,23,42,0.25); }
+.session-modal { position: relative; max-width: 420px; margin: 10vh auto; background: var(--color-surface); border-radius: 12px; box-shadow: var(--shadow-lg); border: 1px solid var(--color-border); padding: 20px; }
+.session-modal h3 { margin: 0; font-size: 18px; font-weight: 800; color: var(--color-text); }
+.session-modal p { color: var(--color-text-soft); margin-top: 8px; }
+.session-modal .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }

@@ -23,6 +23,7 @@ const UsersAndRoles = ReactLazy(() => import('./pages/administration/UsersAndRol
 const Vendors = ReactLazy(() => import('./pages/administration/Vendors'));
 const CrateManagement = ReactLazy(() => import('./pages/administration/CrateManagement'));
 const BinManagement = ReactLazy(() => import('./pages/administration/BinManagement'));
+const BayManagement = ReactLazy(() => import('./pages/administration/BayManagement'));
 const SystemConfiguration = ReactLazy(() => import('./pages/administration/SystemConfiguration'));
 import StockMovement from './pages/reports/StockMovement';
 import FulfillmentAccuracy from './pages/reports/FulfillmentAccuracy';
@@ -92,6 +93,7 @@ const DashboardRoutes = () => (
       <Route path="returns-waste/crate-sanitization" element={<CrateSanitization />} />
 
   <Route path="administration/warehouse-management" element={<SuspenseWrap><WarehouseManagement /></SuspenseWrap>} />
+  <Route path="administration/bay-management" element={<SuspenseWrap><BayManagement /></SuspenseWrap>} />
   <Route path="administration/users-roles" element={<SuspenseWrap><UsersAndRoles /></SuspenseWrap>} />
   <Route path="administration/vendors" element={<SuspenseWrap><Vendors /></SuspenseWrap>} />
   <Route path="administration/crate-management" element={<SuspenseWrap><CrateManagement /></SuspenseWrap>} />

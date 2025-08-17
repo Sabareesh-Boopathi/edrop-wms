@@ -27,6 +27,8 @@ export interface SystemConfig {
   // System behavior
   autoGenerateMissingIds?: boolean;
   dataSyncIntervalMins?: number;
+  // Inbound policies
+  inboundOversPolicy?: { hold_days: number; after: 'DISPOSE' | 'CHARITY' };
 }
 
 export interface WarehouseConfig {
@@ -40,6 +42,9 @@ export interface WarehouseConfig {
   nextRackSeq: number;
   rackPrefix?: string;
   nextBinSeq: number;
+  // Inbound Receipts
+  nextReceiptSeq?: number;
+  receiptPrefix?: string;
   // Service Area
   serviceAreaRangeKm?: number;
   dockBayCount?: number;
@@ -56,11 +61,18 @@ export interface WarehouseConfig {
   // Custom Labels
   rackLabelTemplate?: string;
   crateLabelTemplate?: string;
+  // Inbound policies (warehouse-level override)
+  inboundOversPolicy?: { hold_days: number; after: 'DISPOSE' | 'CHARITY' };
 }
 
 export const getSystemConfig = async (): Promise<SystemConfig> => {
-  const res = await api.get('/system/config');
-  return res.data;
+  try {
+    const res = await api.get('/system/config');
+    return res.data;
+  } catch {
+    // Fallback mock for dev
+    return { appName: 'eDrop WMS', defaultTimeZone: 'Asia/Kolkata', dateFormat: 'dd/MM/yyyy', defaultLanguage: 'en', inboundOversPolicy: { hold_days: 3, after: 'DISPOSE' } };
+  }
 };
 
 export const saveSystemConfig = async (payload: SystemConfig): Promise<SystemConfig> => {
@@ -69,8 +81,13 @@ export const saveSystemConfig = async (payload: SystemConfig): Promise<SystemCon
 };
 
 export const getWarehouseConfig = async (warehouseId: string): Promise<WarehouseConfig> => {
-  const res = await api.get(`/warehouses/${warehouseId}/config`);
-  return res.data;
+  try {
+    const res = await api.get(`/warehouses/${warehouseId}/config`);
+    return res.data;
+  } catch {
+    // Fallback mock for dev
+  return { warehouseName: 'Default WH', shortCode: 'DFT', nextCrateSeq: 1, nextRackSeq: 1, nextBinSeq: 1, nextReceiptSeq: 1, inboundOversPolicy: { hold_days: 3, after: 'DISPOSE' } } as WarehouseConfig;
+  }
 };
 
 export const saveWarehouseConfig = async (

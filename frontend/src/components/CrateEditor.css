@@ -5,9 +5,9 @@
   flex-direction: column;
   gap: 2rem;
   padding: 2rem;
-  background-color: #fff;
+  background-color: var(--color-surface);
   border-radius: 1rem;
-  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 10%), 0 8px 10px -6px rgb(0 0 0 / 10%);
+  box-shadow: var(--shadow-lg);
 }
 
 @media (width >= 768px) {
@@ -51,21 +51,21 @@
   width: 140px;
   min-width: 100px;
   max-width: 100px;
-  background: #fff;
+  background: var(--color-surface);
   border-radius: 8px;
-  box-shadow: 0 8px 18px 0 rgb(0 60 180 / 13%), 2px 2px 8px #b3d1f7;
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 10px 6px 7px;
-  border: 1.5px solid #b3d1f7;
+  border: 1px solid var(--color-border);
   z-index: 2;
   transform: perspective(500px) rotateX(10deg) rotateY(0deg) skewX(20deg) skewY(0deg) rotateZ(20deg);
   transform-origin: bottom right;
   transition: box-shadow 0.2s, transform 0.2s;
   box-sizing: border-box;
   overflow: hidden;
-  filter: drop-shadow(2px 4px 8px #b3d1f7);
+  filter: none;
 }
 
 .crate-image-container:hover .label-overlay {
@@ -78,7 +78,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #fff;
+  background: var(--color-surface);
   border-radius: 4px;
   padding: 3px;
 }
@@ -92,7 +92,7 @@
 .label-name-small {
   font-weight: 700;
   font-size: clamp(0.7rem, 2vw, 1rem);
-  color: #1a2c4b;
+  color: var(--color-text);
   text-align: center;
   margin-top: 4px;
   margin-bottom: 2px;
@@ -125,7 +125,7 @@
 
 .qr-code-container {
   padding: 0.5rem;
-  background-color: white;
+  background-color: var(--color-surface);
   border-radius: 0.375rem;
   box-shadow: 0 2px 4px rgb(0 0 0 / 5%);
 }
@@ -133,7 +133,7 @@
 .crate-name-display {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-text);
   text-align: center;
 }
 
@@ -196,7 +196,7 @@
   display: block;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-text);
   margin-bottom: 0.5rem;
 }
 
@@ -208,7 +208,7 @@
   font-size: 1rem;
   transition: border-color 0.2s, box-shadow 0.2s;
   box-sizing: border-box;
-  background-color: #fff;
+  background-color: var(--color-surface);
 }
 
 .form-group .input:focus, .form-group .select:focus {
@@ -277,7 +277,7 @@
 .bulk-create-title {
     font-size: 1rem;
     font-weight: 600;
-    color: #1f2937;
+  color: var(--color-text);
 }
 
 .bulk-crate-item {
@@ -295,10 +295,10 @@
 
 .bulk-crate-name {
     font-weight: 500;
-    color: #374151;
+  color: var(--color-text);
 }
 
 .bulk-crate-qr {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    color: #6b7280;
+  color: var(--color-text-subtle);
 }

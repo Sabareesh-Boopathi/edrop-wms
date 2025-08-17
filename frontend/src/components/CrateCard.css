@@ -1,7 +1,7 @@
 .crate-card {
-  background-color: #fff;
+  background-color: var(--color-surface);
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 5%);
+  box-shadow: var(--shadow-sm);
   padding: 1rem;
   transition: all 0.3s ease;
   border-top: 4px solid transparent;
@@ -9,17 +9,14 @@
 }
 
 .qr-code-container {
-  background-color: #fff;
+  background-color: var(--color-surface);
   padding: 8px;
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 10%);
-  border: 1px solid #e5e7eb;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-border);
 }
 
-.crate-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 10%);
-}
+.crate-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
 
 .crate-card-header {
   display: flex;
@@ -41,17 +38,13 @@
   cursor: pointer;
   padding: 0.25rem;
   margin-left: 0.5rem;
-  color: #6b7280;
+  color: var(--color-text-subtle);
   transition: color 0.2s;
 }
 
-.crate-actions .edit-btn:hover {
-  color: #1d4ed8;
-}
+.crate-actions .edit-btn:hover { color: var(--color-info); }
 
-.crate-actions .delete-btn:hover {
-  color: #dc2626;
-}
+.crate-actions .delete-btn:hover { color: var(--color-error); }
 
 .crate-card-body {
   display: flex;
@@ -61,7 +54,7 @@
 
 .crate-details p {
   margin: 0.5rem 0;
-  color: #374151;
+  color: var(--color-text);
 }
 
 .status-text {

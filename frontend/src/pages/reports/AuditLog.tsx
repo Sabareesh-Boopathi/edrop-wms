@@ -6,7 +6,7 @@ import { useConfig } from '../../contexts/ConfigContext';
 import { Link } from 'react-router-dom';
 import EmptyState from '../../components/EmptyState';
 import { Filter as FilterIcon, Search as SearchIcon, Cog } from 'lucide-react';
-import { toast } from 'sonner';
+import * as notify from '../../lib/notify';
 import '../administration/WarehouseManagement.css';
 import './AuditLog.css';
 
@@ -44,8 +44,8 @@ const AuditLog: React.FC = () => {
 
   React.useEffect(() => {
     load();
-    getUsers().then(setUsers).catch((err) => {
-      toast.error('Failed to fetch users');
+    getUsers().then(setUsers).catch(() => {
+      notify.error('Failed to fetch users');
     });
   }, [load]);
 
@@ -126,14 +126,14 @@ const AuditLog: React.FC = () => {
           <p>Recent configuration changes with field-level diffs.</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="add-warehouse-btn" onClick={exportCsv} disabled={loading}>Export CSV</button>
-          <button className="add-warehouse-btn" style={{ background: '#2563eb' }} onClick={load} disabled={loading}>Refresh</button>
+          <button className="btn-outline-token" onClick={exportCsv} disabled={loading}>Export CSV</button>
+          <button className="btn-primary-token" onClick={load} disabled={loading}>Refresh</button>
         </div>
       </header>
       {/* Filters bar below title */}
       <div className="filters-bar" style={{ marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 16 }}>
-          <FilterIcon size={18} style={{ marginRight: 2, color: '#64748b' }} /> Filters
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 16, color: 'var(--color-text-soft)' }}>
+          <FilterIcon size={18} style={{ marginRight: 2, color: 'var(--color-text-subtle)' }} /> Filters
         </div>
         <div className="filter-item select">
           <select value={actionFilter} onChange={e => setActionFilter(e.target.value)}>
@@ -178,7 +178,7 @@ const AuditLog: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
             <span style={{ fontWeight: 500, fontSize: 15, marginRight: 8 }}>Search</span>
             <div style={{ position: 'relative', width: 220, maxWidth: '100%' }}>
-              <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#64748b' }}>
+              <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-subtle)' }}>
                 <SearchIcon size={15} />
               </span>
               <input
@@ -186,7 +186,7 @@ const AuditLog: React.FC = () => {
                 placeholder="actor, entity, field or value…"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                style={{ width: '100%', height: 28, borderRadius: 16, paddingLeft: 30, fontSize: 14, border: '1px solid #d1d5db', background: '#fff' }}
+                style={{ width: '100%', paddingLeft: 30 }}
               />
             </div>
           </div>
@@ -213,7 +213,11 @@ const AuditLog: React.FC = () => {
               <div className="skeleton-row" />
             </div>
           )}
-          {error && toast.error(error)}
+          {error && (
+            <div className="error-banner" role="alert" style={{ marginBottom: 8 }}>
+              {error}
+            </div>
+          )}
           {!loading && !error && (
             <div className="table-wrapper">
               <table className="table">
@@ -231,7 +235,7 @@ const AuditLog: React.FC = () => {
                     <tr>
                       <td colSpan={5} className="empty-cell">
                         <EmptyState
-                          icon={<Cog size={40} strokeWidth={1.5} style={{ color: '#64748b' }} />}
+                          icon={<Cog size={40} strokeWidth={1.5} style={{ color: 'var(--color-text-subtle)' }} />}
                           title="No audit entries"
                           message="Tip: Change a setting in System Config to generate a log."
                           actionLabel="Go to System Config"

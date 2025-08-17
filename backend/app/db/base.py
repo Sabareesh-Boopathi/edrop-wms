@@ -26,3 +26,5 @@ from app.models.bin import Bin
 from app.models.notification import Notification
 from app.models.store_products import StoreProduct
 from app.models.audit_log import AuditLog
+from app.models.inbound_receipt import InboundReceipt
+from app.models.inbound_receipt_line import InboundReceiptLine

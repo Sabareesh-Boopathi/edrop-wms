@@ -11,7 +11,7 @@ import RackDetailModal from 'components/RackDetailModal';
 import RackFormModal from 'components/RackFormModal';
 import EmptyState from 'components/EmptyState';
 import { PlusCircle, Layers, Home, ChevronDown, ChevronRight, Search, Filter as FilterIcon, ArrowUpDown } from 'lucide-react';
-import { toast } from 'sonner';
+import * as notify from '../../lib/notify';
 
 // Simple UUID v4/v1 validator (case-insensitive)
 const isUuid = (v: string | undefined | null): v is string =>
@@ -63,7 +63,7 @@ const BinManagement: React.FC = () => {
     } catch (e: any) {
       setError('Failed to load racks');
       setRacksByWarehouse(prev => ({ ...prev, [warehouseId]: [] }));
-      toast.error(e?.response?.data?.detail ?? 'Failed to load racks');
+  notify.error(e?.response?.data?.detail ?? 'Failed to load racks');
     } finally {
       setLoadingByWarehouse(prev => ({ ...prev, [warehouseId]: false }));
     }
@@ -116,7 +116,7 @@ const BinManagement: React.FC = () => {
         }
       } catch (e: any) {
         setError('Failed to load warehouses');
-        toast.error(e?.response?.data?.detail ?? 'Failed to load warehouses');
+  notify.error(e?.response?.data?.detail ?? 'Failed to load warehouses');
       } finally {
         setLoading(false);
       }
@@ -170,7 +170,7 @@ const BinManagement: React.FC = () => {
           // include status if provided
           ...(values as any).status ? { status: (values as any).status } : {},
         });
-        toast.success('Rack updated successfully');
+  notify.success('Rack updated successfully');
       } else {
         const quantity = Math.min(Math.max(Number(values.count || 1), 1), 100);
         for (let i = 0; i < quantity; i++) {
@@ -182,7 +182,7 @@ const BinManagement: React.FC = () => {
             status: (values as any).status || (config.defaultRackStatus as any) || 'active',
           });
         }
-        toast.success(quantity > 1 ? `Created ${quantity} racks` : 'Rack created successfully');
+  notify.success(quantity > 1 ? `Created ${quantity} racks` : 'Rack created successfully');
       }
       await loadRacksFor(values.warehouse_id);
       setRackModalOpen(false);
@@ -191,14 +191,14 @@ const BinManagement: React.FC = () => {
       setModalWarehouseId(values.warehouse_id);
     } catch (e: any) {
       setError('Failed to save rack');
-      toast.error(e?.response?.data?.detail ?? 'Failed to save rack');
+  notify.error(e?.response?.data?.detail ?? 'Failed to save rack');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteRack = async (rackId: string, warehouseId: string) => {
-    toast.error('Are you sure you want to delete this rack?', {
+  notify.show('Are you sure you want to delete this rack?', {
       action: {
         label: 'Delete',
         onClick: async () => {
@@ -207,10 +207,10 @@ const BinManagement: React.FC = () => {
             await deleteRack(rackId);
             await loadRacksFor(warehouseId);
             setDetailRack(null);
-            toast.success('Rack deleted successfully');
+            notify.success('Rack deleted successfully');
           } catch (e: any) {
             setError('Failed to delete rack');
-            toast.error(e?.response?.data?.detail ?? 'Failed to delete rack');
+            notify.error(e?.response?.data?.detail ?? 'Failed to delete rack');
           } finally {
             setLoading(false);
           }
@@ -218,7 +218,7 @@ const BinManagement: React.FC = () => {
       },
       cancel: {
         label: 'Cancel',
-        onClick: () => toast.dismiss(),
+  onClick: () => notify.dismiss(),
       },
     });
   };
@@ -313,21 +313,28 @@ const BinManagement: React.FC = () => {
   <div style={{fontSize:12, fontWeight:500, color:'var(--color-success-deep)', background:'var(--color-primary-soft)', border:'1px solid var(--color-success-border)', padding:'6px 12px', borderRadius:10, display:'flex', justifyContent:'space-between', alignItems:'center', gap:12, marginBottom:10}}>
         <span>Click any rack visual to view detailed bin statuses. Use size controls to zoom.</span>
         <div style={{display:'flex',alignItems:'center',gap:6}}>
-          <span style={{fontSize:11, color:'#0f5132'}}>Size:</span>
+          <span style={{fontSize:11, color:'var(--color-success-deep)'}}>Size:</span>
           {(['sm','md','lg','xl'] as const).map(s => (
-            <button key={s} onClick={()=>setRackScale(s)} style={{padding:'4px 8px',fontSize:11,borderRadius:6,border:'1px solid '+(rackScale===s?'#16a34a':'#d1d5db'),background:rackScale===s?'#16a34a':'#fff',color:rackScale===s?'#fff':'#111',cursor:'pointer'}}>{s.toUpperCase()}</button>
+            <button key={s} onClick={()=>setRackScale(s)}
+              className={`pill ${rackScale===s?'active':''}`}
+              style={{padding:'4px 8px',fontSize:11,borderRadius:6,
+                border: rackScale===s ? '1px solid var(--color-success-border)' : '1px solid var(--color-border)',
+                background: rackScale===s ? 'var(--color-success)' : 'var(--color-surface)',
+                color: rackScale===s ? 'var(--color-white)' : 'var(--color-text)'
+              }}
+            >{s.toUpperCase()}</button>
           ))}
         </div>
       </div>
 
       {/* Global Rack Legend */}
       <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:12}} aria-label="Rack legend">
-        <span style={{fontSize:12,fontWeight:600,color:'#1f2937',marginRight:4}}>Legend:</span>
+        <span style={{fontSize:12,fontWeight:600,color:'var(--color-text)',marginRight:4}}>Legend:</span>
   <span className="chip chip-util-low">Low Util (&lt;=50%)</span>
   <span className="chip chip-util-med">Medium (50–80%)</span>
   <span className="chip chip-util-high">High (&gt;80%)</span>
   <span className="chip chip-neutral">Empty Slot</span>
-  <span className="chip" style={{background:'var(--color-primary)',color:'#fff',border:'1px solid var(--color-primary-hover)'}}>Filled Slot</span>
+  <span className="chip" style={{background:'var(--color-primary)',color:'var(--color-white)',border:'1px solid var(--color-primary-hover)'}}>Filled Slot</span>
       </div>
 
       {/* Global quick filters */}

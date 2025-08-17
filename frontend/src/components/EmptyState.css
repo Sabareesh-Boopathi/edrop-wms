@@ -1,9 +1,9 @@
 .empty-state {
   text-align: center;
   padding: 4rem 2rem;
-  background-color: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -2px rgb(0 0 0 / 10%);
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
 }
 
 .empty-state-content {
@@ -18,21 +18,21 @@
   width: 80px;
   height: 80px;
   border-radius: 9999px;
-  background: #f1f5f9;
-  color: #111827;
+  background: var(--color-surface-muted);
+  color: var(--color-text);
   margin: 0 auto 1.25rem; /* increased from 1rem */
 }
 
 .empty-state-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--color-text);
   margin: 0.5rem 0 0.75rem; /* increased spacing */
 }
 
 .empty-state-message {
   margin: 0.5rem auto 2rem; /* increased spacing below message */
-  color: #6b7280;
+  color: var(--color-text-subtle);
 }
 
 .empty-state-button-wrapper {
@@ -46,13 +46,13 @@
   align-items: center;
   gap: 0.5rem;
   background-color: var(--color-primary) !important;
-  color: white;
+  color: var(--color-white);
   font-weight: 600;
   padding: 0.75rem 1.25rem;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -2px rgb(0 0 0 / 10%);
+  box-shadow: var(--shadow-md);
   transition: all 0.3s ease;
 }
 

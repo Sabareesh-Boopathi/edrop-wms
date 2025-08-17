@@ -1,0 +1,22 @@
+/* Crate Inventory specific styles to align with global status chip look */
+.crate-status.crate--active,
+.crate-status.crate--in_use {
+  background: color-mix(in srgb, var(--color-success) 16%, transparent);
+  color: var(--color-success-deep);
+  border: 1px solid var(--color-success-border);
+}
+.crate-status.crate--reserved {
+  background: color-mix(in srgb, var(--color-warn) 16%, transparent);
+  color: var(--color-warn-deep);
+  border: 1px solid var(--soft-warn-border);
+}
+.crate-status.crate--damaged {
+  background: color-mix(in srgb, var(--color-error) 16%, transparent);
+  color: color-mix(in srgb, var(--color-error) 70%, var(--color-black));
+  border: 1px solid color-mix(in srgb, var(--color-error) 40%, var(--color-border));
+}
+.crate-status.crate--inactive {
+  background: var(--color-surface-alt);
+  color: var(--color-text-soft);
+  border: 1px solid var(--color-border);
+}

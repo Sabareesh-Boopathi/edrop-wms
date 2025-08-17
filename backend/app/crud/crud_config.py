@@ -180,4 +180,25 @@ class CRUDConfig:
             db.rollback()
             raise
 
+    def consume_next_receipt_seq(self, db: Session, warehouse_id) -> Tuple[dict, int]:
+        try:
+            row = self._lock_wh_config(db, warehouse_id)
+            data = row.data or {}
+            try:
+                seq = int(data.get('nextReceiptSeq') or 1)
+            except Exception:
+                seq = 1
+            if seq < 1 or seq > 999999:
+                seq = 1
+            next_seq = seq + 1
+            if next_seq > 999999:
+                next_seq = 1
+            row.data = { **data, 'nextReceiptSeq': next_seq }
+            db.commit()
+            db.refresh(row)
+            return row.data, seq
+        except SQLAlchemyError:
+            db.rollback()
+            raise
+
 config = CRUDConfig()

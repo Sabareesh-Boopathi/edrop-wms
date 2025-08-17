@@ -1,5 +1,8 @@
 /* Design Tokens: Colors, spacing, radii, shadows */
 :root {
+  /* Basic */
+  --color-white:#ffffff;
+  --color-black:#000000;
   /* Brand Greens */
   --color-primary:#2E8B57; /* base */
   --color-primary-hover:#256d45;
@@ -12,6 +15,10 @@
   --color-success-deep:#065f46; /* deep text on success tint */
   --color-success-border:#a7f3d0; /* border on success tint */
   --color-warn:#f59e0b;
+  /* Alias for warning text color used inline in some components */
+  --color-warning:#b45309;
+  /* Deeper warn for shadows/accents (used in maintenance rail) */
+  --color-warn-deep:#92400e;
   --color-error:#ef4444;
   --color-info:#0284c7;
   --color-maintenance:#b45309;
@@ -23,6 +30,13 @@
   --util-med-bg:#f59e0b22; --util-med-border:#f59e0b55; --util-med-text:#7c3d06;
   --util-high-bg:#ef444422; --util-high-border:#ef444455; --util-high-text:#991b1b;
 
+  /* Soft semantic tints for badges/banners */
+  --soft-info-bg:#e6f0ff; --soft-info-text:#1e40af;
+  --soft-info-border:#bfdbfe;
+  --soft-success-bg:#ecfdf5; --soft-success-text:#166534; --soft-success-border:#6ee7b7;
+  --soft-warn-bg:#fff7ed; --soft-warn-text:#b45309; --soft-warn-border:#fde68a;
+  --soft-error-bg:#fef2f2; --soft-error-text:#991b1b; --soft-error-border:#fecaca;
+
   /* Neutral Scale */
   --color-bg:#f8f9fa;
   --color-surface:#ffffff;
@@ -33,6 +47,7 @@
   --color-text:#111827;
   --color-text-soft:#475569;
   --color-text-subtle:#6b7280;
+  --color-text-dim:#94a3b8; /* extra-muted text for timestamps, hints */
 
   /* Spacing (4pt baseline) */
   --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:20px; --space-6:24px;
@@ -44,6 +59,33 @@
   --shadow-sm:0 1px 2px rgba(0,0,0,.06);
   --shadow-md:0 4px 10px -2px rgba(0,0,0,.12);
   --shadow-lg:0 10px 28px -4px rgba(0,0,0,.18);
+
+  /* Typography scale */
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+
+  /* Controls (modern, compact) */
+  --control-height-sm: 30px;
+  --control-height-md: 36px;
+  --control-padding-x: 10px;
+  --control-padding-y: 6px;
+  --control-padding-x-sm: 8px;
+  --control-padding-y-sm: 4px;
+
+  /* Table compact spacing */
+  --table-cell-py: 8px;
+  --table-cell-px: 10px;
+
+  /* Charts & KPI (dashboard) */
+  --chart-receiving:#5e72e4;
+  --chart-picking:#2dce89;
+  --chart-shipping:#fb6340;
+  --kpi-1-start:#5e72e4; --kpi-1-end:#825ee4;
+  --kpi-2-start:#2dce89; --kpi-2-end:#2dceb3;
+  --kpi-3-start:#fb6340; --kpi-3-end:#fbb140;
+  --kpi-4-start:#11cdef; --kpi-4-end:#1171ef;
 }
 
 /* Utility classes (incrementally adopt) */

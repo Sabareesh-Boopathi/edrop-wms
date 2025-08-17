@@ -7,7 +7,7 @@ import uuid
 from app import crud, models, schemas
 from app.api import deps
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("app.api.endpoints.vendors")
 router = APIRouter()
 
 

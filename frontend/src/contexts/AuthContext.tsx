@@ -1,5 +1,6 @@
 // frontend/src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import './AuthContext.css';
 import { AUTH_TOKEN_KEY, IDLE_TIMEOUT_MS } from '../constants';
 import api, { refreshToken } from '../services/api';
 import { throttle } from 'lodash';
@@ -150,12 +151,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         {children}
       </AuthContext.Provider>
       {showExpiryModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000 }}>
-          <div style={{ position: 'absolute', inset: 0, backdropFilter: 'blur(3px)', background: 'rgba(15,23,42,0.25)' }} />
-          <div style={{ position: 'relative', maxWidth: 420, margin: '10vh auto', background: '#fff', borderRadius: 12, boxShadow: '0 12px 28px rgba(16,24,40,0.15)', border: '1px solid #e6eaf0', padding: 20 }}>
-            <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#0f172a' }}>Session expiring soon</h3>
-            <p style={{ color: '#475569', marginTop: 8 }}>Your session will expire in {countdown}s due to inactivity. Do you want to stay signed in?</p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+        <div className="session-overlay">
+          <div className="session-overlay-backdrop" />
+          <div className="session-modal">
+            <h3>Session expiring soon</h3>
+            <p>Your session will expire in {countdown}s due to inactivity. Do you want to stay signed in?</p>
+            <div className="actions">
               <button onClick={logout} className="btn-outline-token">Logout</button>
               <button onClick={extendSession} className="btn-primary-token">Stay signed in</button>
             </div>

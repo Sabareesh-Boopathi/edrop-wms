@@ -23,9 +23,9 @@
     }
 
     .printable-label {
-        background-color: white;
+        background-color: var(--color-white);
         padding: 20px;
-        border: 2px dashed #000;
+        border: 2px dashed var(--color-text);
         text-align: center;
     }
 
@@ -39,6 +39,6 @@
     .label-name {
         font-size: 18px;
         font-weight: bold;
-        color: #000;
+        color: var(--color-text);
     }
 }

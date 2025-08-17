@@ -7,6 +7,8 @@ from math import radians, sin, cos, asin, sqrt
 
 from app.api import deps
 from app import crud, models, schemas
+from app.schemas.inventory import BatchAdjustRequest, BatchAdjustResult
+from app.models.audit_log import AuditLog
 
 router = APIRouter()
 logger = logging.getLogger("app.api.endpoints.stores")
@@ -122,6 +124,50 @@ def delete_store_product(
     if not db_sp or str(db_sp.store_id) != str(store_id):
         raise HTTPException(status_code=404, detail="StoreProduct not found")
     return crud.store_product.remove(db, id=store_product_id)
+
+# Direct update by StoreProduct ID (does not require store in path)
+@router.put("/store-products/{store_product_id}", response_model=schemas.StoreProduct)
+def update_store_product_by_id(
+    store_product_id: uuid.UUID,
+    item: schemas.StoreProductUpdate,
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_active_user),
+):
+    db_sp = crud.store_product.get(db, id=store_product_id)
+    if not db_sp:
+        raise HTTPException(status_code=404, detail="StoreProduct not found")
+    return crud.store_product.update(db, db_obj=db_sp, obj_in=item)
+
+
+@router.post("/store-products:batch-adjust", response_model=BatchAdjustResult)
+def batch_adjust_store_products(
+    payload: BatchAdjustRequest,
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_active_user),
+):
+    updated_count = 0
+    for it in payload.items:
+        sp = crud.store_product.get(db, id=it.store_product_id)
+        if not sp:
+            continue
+        before_qty = sp.available_qty
+        sp = crud.store_product.update(db, db_obj=sp, obj_in={"available_qty": it.available_qty})
+        updated_count += 1
+        # audit log
+        db.add(
+            AuditLog(
+                actor_user_id=current_user.id,
+                entity_type="store_product",
+                entity_id=str(sp.id),
+                action="adjust",
+                changes={
+                    "available_qty": {"before": before_qty, "after": it.available_qty},
+                    "reason": {"before": None, "after": it.reason},
+                },
+            )
+        )
+        db.commit()
+    return BatchAdjustResult(updated=updated_count)
 
 @router.get("/nearby", response_model=List[schemas.Store])
 def list_nearby_stores(

@@ -1,3 +1,6 @@
+@import '../theme/tokens.css';
+@import '../theme/utilities.css';
+
 .login-page {
   margin: 0;
   font-family: Roboto, sans-serif;
@@ -18,10 +21,11 @@
 }
 
 .login-card {
-  background-color: #fff;
+  background-color: var(--color-surface);
   padding: 2.5rem;
-  border-radius: 12px;
-  box-shadow: 0 8px 16px rgb(0 0 0 / 20%);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-border);
   max-width: 400px;
   width: 100%;
 }
@@ -31,21 +35,22 @@
   font-weight: bold;
   margin-bottom: 1rem;
   text-align: center;
-  color: #4caf50;
+  color: var(--color-primary);
 }
 
 .login-subtitle {
   font-size: 1rem;
   text-align: center;
-  color: #757575;
+  color: var(--color-text-subtle);
   margin-bottom: 1.5rem;
 }
 
 .login-error {
-  background-color: #ffebee;
-  color: #d32f2f;
+  background-color: var(--soft-error-bg);
+  color: var(--soft-error-text);
+  border: 1px solid var(--soft-error-border);
   padding: 0.75rem;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   margin-bottom: 1rem;
   text-align: center;
 }
@@ -58,14 +63,14 @@
 .login-label {
   font-size: 1rem;
   margin-bottom: 0.5rem;
-  color: #374151;
+  color: var(--color-text);
 }
 
 .login-input {
   padding: 0.75rem;
   margin-bottom: 1.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
   font-size: 1rem;
   outline: none;
   transition: border-color .18s, box-shadow .18s, background-color .18s;
@@ -73,8 +78,8 @@
 
 .login-input:focus-visible {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgb(46 139 87 / 25%);
-  background:#f0fdf4;
+  box-shadow: var(--color-primary-ring);
+  background: var(--color-primary-soft);
 }
 
 /* Subtler focus when filled but not error */
@@ -83,25 +88,15 @@
 }
 
 .login-input.error {
-  border-color: #d32f2f;
-  background-color: #ffebee;
+  border-color: var(--soft-error-border);
+  background-color: var(--soft-error-bg);
 }
 
 .login-button {
-  background-color: #4caf50;
-  color: #fff;
-  padding: 0.75rem;
-  border: none;
-  border-radius: 6px;
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: background-color 0.3s;
   margin-top: 1rem;
 }
 
-.login-button:hover {
-  background-color: #388e3c;
-}
+.login-button.btn-primary-token { font-size: 1.05rem; }
 
 .login-button:active {
   animation: buttonPress 0.2s;
@@ -110,19 +105,46 @@
 .forgot-password {
   text-align: right;
   font-size: 0.9rem;
-  color: #4caf50;
+  color: var(--color-primary);
   text-decoration: underline;
   cursor: pointer;
 }
 
 .forgot-password:hover {
-  color: #388e3c;
+  color: var(--color-primary-hover);
 }
 
 .error-outline {
-  border: 2px solid #ff4d4d;
-  box-shadow: 0 0 0 3px rgb(255 77 77 / 35%);
+  border: 2px solid var(--color-error);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-error) 35%, transparent);
   animation: shake 0.3s;
+}
+
+/* Replaces inline error toast styles */
+.custom-toast {
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  animation: fadeIn 0.5s, fadeOut 0.5s 2.5s;
+  position: relative;
+}
+.custom-toast.error {
+  background-color: var(--color-error);
+  color: var(--color-white);
+}
+.custom-toast .close-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-white);
+  font-size: 16px;
+  cursor: pointer;
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
 }
 
 @keyframes fadeIn {

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
+import * as notify from '../../lib/notify';
 import { Button } from '../../components/ui/button';
 import * as warehouseService from '../../services/warehouseService';
 import * as configService from '../../services/configService';
@@ -66,7 +66,7 @@ const SystemConfiguration: React.FC = () => {
 
   // Per-warehouse config state
   const [warehouseConfig, setWarehouseConfig] = useState<configService.WarehouseConfig | null>(null);
-  const [initialSeq, setInitialSeq] = useState<{ crate: number; rack: number }>({ crate: 1, rack: 1 });
+  const [initialSeq, setInitialSeq] = useState<{ crate: number; rack: number; receipt: number }>({ crate: 1, rack: 1, receipt: 1 });
 
   const TIME_ZONES = [
     { label: 'IST (UTC+05:30)', value: 'Asia/Kolkata' },
@@ -102,7 +102,7 @@ const SystemConfiguration: React.FC = () => {
         ]);
         setSystemConfig(sys);
       } catch (err: any) {
-        toast.error(getErrorMessage(err));
+  notify.error(getErrorMessage(err));
       }
       try {
         const ws = await warehouseService.getWarehouses();
@@ -110,7 +110,7 @@ const SystemConfiguration: React.FC = () => {
         setWarehouses(mapped);
         if (mapped[0]?.id) setSelectedWarehouseId(mapped[0].id);
       } catch (err: any) {
-        toast.error(getErrorMessage(err));
+  notify.error(getErrorMessage(err));
       }
     })();
   }, []);
@@ -122,7 +122,7 @@ const SystemConfiguration: React.FC = () => {
       try {
         const cfg = await configService.getWarehouseConfig(selectedWarehouseId);
         setWarehouseConfig(cfg);
-        setInitialSeq({ crate: Number(cfg.nextCrateSeq || 1), rack: Number(cfg.nextRackSeq || 1) });
+        setInitialSeq({ crate: Number(cfg.nextCrateSeq || 1), rack: Number(cfg.nextRackSeq || 1), receipt: Number(cfg.nextReceiptSeq || 1) });
       } catch (err: any) {
         // If not found, initialize defaults so user can save first config
         const defaults: configService.WarehouseConfig = {
@@ -133,6 +133,7 @@ const SystemConfiguration: React.FC = () => {
           crateSuffix: '',
           nextRackSeq: 1,
           rackPrefix: '',
+          nextReceiptSeq: 1,
           nextBinSeq: 1,
           serviceAreaRangeKm: 0,
           dockBayCount: 0,
@@ -147,25 +148,25 @@ const SystemConfiguration: React.FC = () => {
           crateLabelTemplate: '',
         };
         setWarehouseConfig(defaults);
-        setInitialSeq({ crate: 1, rack: 1 });
+        setInitialSeq({ crate: 1, rack: 1, receipt: 1 });
       }
     })();
   }, [selectedWarehouseId, warehouses]);
 
   const confirmAnd = async (action: () => Promise<void>) => {
-    toast.message('Confirm save?', {
+  notify.show('Confirm save?', {
       action: {
         label: 'Save',
         onClick: async () => {
           try {
             await action();
-            toast.success('Saved');
+            notify.success('Saved');
           } catch (e: any) {
-            toast.error(getErrorMessage(e));
+            notify.error(getErrorMessage(e));
           }
         },
       },
-      cancel: { label: 'Cancel', onClick: () => toast.dismiss() },
+  cancel: { label: 'Cancel', onClick: () => notify.dismiss() },
     });
   };
 
@@ -187,16 +188,19 @@ const SystemConfiguration: React.FC = () => {
       if (!warehouseConfig.warehouseName) throw new Error('Warehouse Name is required');
       if (!/^[A-Za-z0-9]{3}$/.test(warehouseConfig.shortCode)) throw new Error('Short Code must be 3 alphanumeric characters');
 
-      const nextCrate = Number(warehouseConfig.nextCrateSeq || 1);
-      const nextRack = Number(warehouseConfig.nextRackSeq || 1);
+  const nextCrate = Number(warehouseConfig.nextCrateSeq || 1);
+  const nextRack = Number(warehouseConfig.nextRackSeq || 1);
+  const nextReceipt = Number(warehouseConfig.nextReceiptSeq || 1);
       if (nextCrate < initialSeq.crate) throw new Error('Crate sequence can only be increased. Decreasing may cause duplicate IDs.');
       if (nextRack < initialSeq.rack) throw new Error('Rack sequence can only be increased. Decreasing may cause duplicate IDs.');
+  if (nextReceipt < initialSeq.receipt) throw new Error('Receipt sequence can only be increased. Decreasing may cause duplicate IDs.');
       if (nextCrate < 1 || nextCrate > 9999) throw new Error('Crate sequence must be between 1 and 9999.');
       if (nextRack < 1 || nextRack > 999) throw new Error('Rack sequence must be between 1 and 999.');
+  if (nextReceipt < 1 || nextReceipt > 999999) throw new Error('Receipt sequence must be between 1 and 999,999.');
 
       const saved = await configService.saveWarehouseConfig(selectedWarehouseId, warehouseConfig);
       setWarehouseConfig(saved);
-      setInitialSeq({ crate: Number(saved.nextCrateSeq || 1), rack: Number(saved.nextRackSeq || 1) });
+  setInitialSeq({ crate: Number(saved.nextCrateSeq || 1), rack: Number(saved.nextRackSeq || 1), receipt: Number(saved.nextReceiptSeq || 1) });
     });
   };
 
@@ -348,6 +352,7 @@ const SystemConfiguration: React.FC = () => {
           <Field label="Data Sync Interval (mins)" tooltip="Cloud sync frequency">
             <NumberInput value={systemConfig.dataSyncIntervalMins ?? 10} onChange={(e) => setSystemConfig(s => ({ ...s, dataSyncIntervalMins: Number(e.target.value) }))} />
           </Field>
+
         </div>
       </div>
       <div className="card-footer" style={{ display: 'flex', justifyContent: 'flex-end', padding: '1rem 1.5rem' }}>
@@ -378,6 +383,14 @@ const SystemConfiguration: React.FC = () => {
             </Field>
             <Field label="Short Code (3)" tooltip="Used in labels">
               <TextInput value={warehouseConfig.shortCode} onChange={(e) => setWarehouseConfig(s => s ? { ...s, shortCode: e.target.value.toUpperCase().slice(0,3) } : s)} />
+            </Field>
+
+            <div className="form-group form-group-span-2"><h5>Inbound Receipt Numbering</h5></div>
+            <Field label="Next Receipt Seq No." tooltip="For inbound receipt ID generation">
+              <NumberInput min={1} max={999999} value={warehouseConfig.nextReceiptSeq || 1} onChange={(e) => setWarehouseConfig(s => s ? { ...s, nextReceiptSeq: Number(e.target.value) } : s)} />
+            </Field>
+            <Field label="Receipt Prefix" tooltip="Prefix for auto-generated receipt IDs">
+              <TextInput value={warehouseConfig.receiptPrefix || ''} onChange={(e) => setWarehouseConfig(s => s ? { ...s, receiptPrefix: e.target.value.toUpperCase().slice(0,8) } : s)} />
             </Field>
 
             <div className="form-group form-group-span-2"><h5>Crate Numbering</h5></div>
@@ -446,6 +459,17 @@ const SystemConfiguration: React.FC = () => {
             </Field>
             <Field label="Crate Label Template" tooltip="QR + text layout">
               <TextInput value={warehouseConfig.crateLabelTemplate || ''} onChange={(e) => setWarehouseConfig(s => s ? { ...s, crateLabelTemplate: e.target.value } : s)} />
+            </Field>
+
+            <div className="form-group form-group-span-2"><h5>Inbound Policies</h5></div>
+            <Field label="Overs Hold Days" tooltip="Days to hold over-delivered items before action">
+              <NumberInput min={0} value={warehouseConfig.inboundOversPolicy?.hold_days ?? 3} onChange={(e) => setWarehouseConfig(s => s ? { ...s, inboundOversPolicy: { hold_days: Math.max(0, Number(e.target.value||0)), after: s.inboundOversPolicy?.after || 'DISPOSE' } } : s)} />
+            </Field>
+            <Field label="Overs After" tooltip="Action after hold: Dispose or Charity">
+              <select value={warehouseConfig.inboundOversPolicy?.after || 'DISPOSE'} onChange={(e) => setWarehouseConfig(s => s ? { ...s, inboundOversPolicy: { hold_days: s.inboundOversPolicy?.hold_days ?? 3, after: e.target.value as any } } : s)}>
+                <option value="DISPOSE">Dispose</option>
+                <option value="CHARITY">Charity</option>
+              </select>
             </Field>
           </div>
         )}

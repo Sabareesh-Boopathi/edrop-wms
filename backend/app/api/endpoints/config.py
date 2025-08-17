@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+import logging
 from sqlalchemy.orm import Session
 from app.api import deps
 from app.crud.crud_config import config as crud_config
@@ -8,6 +9,7 @@ from app.schemas.config import SystemConfigSchema, WarehouseConfigSchema
 from app.models.user import User
 
 router = APIRouter()
+logger = logging.getLogger("app.api.endpoints.config")
 
 @router.get("/system/config", response_model=SystemConfigSchema)
 def get_system_config(
@@ -17,6 +19,7 @@ def get_system_config(
     data = crud_config.get_system(db)
     if not data:
         # return sensible defaults if not set, aligned with frontend
+        logger.info("ℹ️ System config not found; returning defaults")
         return SystemConfigSchema(
             appName="eDrop WMS",
             defaultTimeZone="Asia/Kolkata",
@@ -24,7 +27,9 @@ def get_system_config(
             timeFormat="24h",
             defaultLanguage="en",
             defaultRackStatus="active",
+            inboundOversPolicy={"hold_days": 3, "after": "DISPOSE"},
         )
+    # Pass-through any inbound policy if present
     return SystemConfigSchema(**data)
 
 @router.put("/system/config", response_model=SystemConfigSchema)
@@ -33,6 +38,7 @@ def put_system_config(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_active_superuser),
 ):
+    logger.info("🛠️ Updating system config by user=%s", current_user.id)
     saved = crud_config.upsert_system(db, data=payload.model_dump(), actor_user_id=str(current_user.id))
     return SystemConfigSchema(**saved)
 
@@ -44,7 +50,14 @@ def get_warehouse_config(
 ):
     data = crud_config.get_warehouse(db, warehouse_id)
     if not data:
+        logger.warning("❌ Warehouse config not found for %s", warehouse_id)
         raise HTTPException(status_code=404, detail="Config not found")
+    # backfill optional fields for older rows
+    if 'nextReceiptSeq' not in data:
+        data['nextReceiptSeq'] = 1
+    if 'receiptPrefix' not in data:
+        # default to 'RCPT' if not configured
+        data['receiptPrefix'] = 'RCPT'
     return WarehouseConfigSchema(**data)
 
 @router.put("/warehouses/{warehouse_id}/config", response_model=WarehouseConfigSchema)
@@ -54,6 +67,7 @@ def put_warehouse_config(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_active_superuser),
 ):
+    logger.info("🛠️ Updating warehouse %s config by user=%s", warehouse_id, current_user.id)
     saved = crud_config.upsert_warehouse(db, warehouse_id, data=payload.model_dump(), actor_user_id=str(current_user.id))
     return WarehouseConfigSchema(**saved)
 

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from "sonner";
+import * as notify from '../lib/notify';
 
 interface ProtectedRouteProps {
   children: JSX.Element;
@@ -18,7 +18,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   if (!isAuthenticated) {
-    toast.error("Session expired. Please log in again.");
+    notify.error("Session expired. Please log in again.");
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

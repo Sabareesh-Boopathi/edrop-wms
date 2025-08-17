@@ -8,7 +8,7 @@ from app import crud, models, schemas
 from app.api import deps
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("app.api.endpoints.customers")
 
 @router.get("/me", response_model=schemas.Customer)
 def read_customer_me(

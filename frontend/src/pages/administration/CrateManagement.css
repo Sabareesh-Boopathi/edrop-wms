@@ -1,10 +1,6 @@
 @import url('./WarehouseManagement.css');
 
-.page-content {
-  padding: 2rem;
-  background-color: #f8f9fa;
-  min-height: 100vh;
-}
+.page-content { padding: 2rem; background-color: var(--color-bg); min-height: 100vh; }
 
 .header {
   display: flex;
@@ -19,10 +15,7 @@
   margin: 0;
 }
 
-.header-text p {
-  color: #6b7280;
-  margin: 0.25rem 0 0;
-}
+.header-text p { color: var(--color-text-subtle); margin: 0.25rem 0 0; }
 
 .header-actions {
   display: flex;
@@ -34,21 +27,9 @@
   position: relative;
 }
 
-.search-input {
-  padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  background-color: #fff;
-  width: 250px;
-}
+.search-input { padding: 0.75rem 1rem; border: 1px solid var(--color-border-strong); border-radius: 0.5rem; font-size: 1rem; transition: border-color 0.2s, box-shadow 0.2s; background-color: var(--color-surface); width: 250px; }
 
-.search-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgb(46 139 87 / 20%);
-}
+.search-input:focus { outline: none; border-color: var(--color-primary); box-shadow: var(--color-primary-ring); }
 
 .add-crate-btn {
     display: flex;
@@ -61,7 +42,7 @@
     border-radius: 0.5rem;
     border: none;
     cursor: pointer;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -2px rgb(0 0 0 / 10%);
+  box-shadow: var(--shadow-sm);
     transition: all 0.3s ease;
 }
 
@@ -71,11 +52,7 @@
 }
 
 
-.add-crate-btn:hover {
-    background-color: #256d45 !important;
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 10%), 0 4px 6px -4px rgb(0 0 0 / 10%);
-    transform: translateY(-2px);
-}
+.add-crate-btn:hover { background-color: var(--color-primary-hover) !important; box-shadow: var(--shadow-lg); transform: translateY(-2px); }
 
 .kpi-section {
   display: grid;
@@ -84,10 +61,10 @@
   margin-bottom: 2rem;
 }
 
-.kpi-card-1 { background: linear-gradient(135deg, #56CCF2, #2F80ED); }
-.kpi-card-2 { background: linear-gradient(135deg, #6DD5FA, #2980B9); }
-.kpi-card-3 { background: linear-gradient(135deg, #FFC371, #FF5F6D); }
-.kpi-card-4 { background: linear-gradient(135deg, #EE9CA7, #FFDDE1); }
+.kpi-card-1 { background: linear-gradient(135deg, var(--kpi-1-start), var(--kpi-1-end)); }
+.kpi-card-2 { background: linear-gradient(135deg, var(--kpi-2-start), var(--kpi-2-end)); }
+.kpi-card-3 { background: linear-gradient(135deg, var(--kpi-3-start), var(--kpi-3-end)); }
+.kpi-card-4 { background: linear-gradient(135deg, var(--kpi-4-start), var(--kpi-4-end)); }
 
 .crate-grid {
   display: grid;
@@ -99,18 +76,6 @@
   margin-bottom: 1.5rem;
 }
 
-.warehouse-filter {
-  padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  background-color: #fff;
-  width: 250px;
-}
+.warehouse-filter { padding: 0.75rem 1rem; border: 1px solid var(--color-border-strong); border-radius: 0.5rem; font-size: 1rem; transition: border-color 0.2s, box-shadow 0.2s; background-color: var(--color-surface); width: 250px; }
 
-.warehouse-filter:focus {
-  outline: none;
-  border-color: #2E8B57;
-  box-shadow: 0 0 0 3px rgb(46 139 87 / 20%);
-}
+.warehouse-filter:focus { outline: none; border-color: var(--color-primary); box-shadow: var(--color-primary-ring); }

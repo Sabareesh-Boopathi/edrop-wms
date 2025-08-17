@@ -1,30 +1,15 @@
 @import url('./WarehouseManagement.css');
 @import url('./CrateManagement.css');
 
-.bin-management-container {
-    padding: 2rem;
-    background-color: #f8f9fa;
-}
+.bin-management-container { padding: 2rem; background-color: var(--color-bg); }
 
-.page-title {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #111827;
-}
+.page-title { font-size: 2rem; font-weight: 700; color: var(--color-text); }
 
 .warehouse-toggle-buttons { margin-bottom: 1rem; }
 
-.warehouse-toggle-btn {
-    background-color: #fff;
-    border: 1px solid #d1d5db;
-    padding: 0.6rem 1rem;
-    margin-right: 0.5rem;
-    cursor: pointer;
-    border-radius: 0.5rem;
-    font-size: 0.95rem;
-}
+.warehouse-toggle-btn { background-color: var(--color-surface); border: 1px solid var(--color-border-strong); padding: 0.6rem 1rem; margin-right: 0.5rem; cursor: pointer; border-radius: 0.5rem; font-size: 0.95rem; }
 
-.warehouse-toggle-btn.active { background-color: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+.warehouse-toggle-btn.active { background-color: var(--color-primary); color: var(--color-white); border-color: var(--color-primary); }
 
 .racks-grid, .crate-grid {
     display: flex;
@@ -33,35 +18,18 @@
     align-items: flex-end; /* bottom align varying heights */
 }
 
-.error-message { color: #ef4444; }
+.error-message { color: var(--color-error); }
 
 /* Accordion header styling */
-.accordion-header {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: #fff;
-    border: 0;
-    border-bottom: 1px solid #eef2f7;
-    padding: 14px 16px;
-    cursor: pointer;
-    border-radius: 12px 12px 0 0;
-}
+.accordion-header { width: 100%; display: flex; align-items: center; justify-content: space-between; background: var(--color-surface); border: 0; border-bottom: 1px solid var(--color-border); padding: 14px 16px; cursor: pointer; border-radius: 12px 12px 0 0; }
 
-.badge {
-    background: #f1f5f9;
-    color: #0f172a;
-    border-radius: 999px;
-    padding: 4px 10px;
-    font-size: 12px;
-    font-weight: 600;
-}
+.badge { background: var(--color-surface-alt); color: var(--color-text); border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 600; }
 
 .add-warehouse-btn.small {
-    padding: 6px 10px;
-    border-radius: 8px;
-    font-size: 12px;
+    /* Use theme control size tokens for small variant */
+    padding: var(--control-padding-y-sm) var(--control-padding-x-sm);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
 }
 
 /* Filters bar */
@@ -73,15 +41,7 @@
     margin: 12px 0 18px;
 }
 
-.filter-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    padding: 8px 10px;
-    border-radius: 10px;
-}
+.filter-item { display: inline-flex; align-items: center; gap: 8px; background: var(--color-surface); border: 1px solid var(--color-border); padding: 8px 10px; border-radius: 10px; }
 
 .filter-item.input input {
     border: 0;
@@ -89,20 +49,9 @@
     font-size: 14px;
 }
 
-.filter-item.pills .pill {
-    border: 1px solid #e5e7eb;
-    background: #f9fafb;
-    color: #111827;
-    padding: 6px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-}
+.filter-item.pills .pill { border: 1px solid var(--color-border); background: var(--color-surface-muted); color: var(--color-text); padding: 6px 10px; border-radius: 999px; font-size: 12px; }
 
-.filter-item.pills .pill.active {
-    background: #111827;
-    color: #fff;
-    border-color: #111827;
-}
+.filter-item.pills .pill.active { background: var(--color-text); color: var(--color-white); border-color: var(--color-text); }
 
 .filter-item.select select {
     border: 0;

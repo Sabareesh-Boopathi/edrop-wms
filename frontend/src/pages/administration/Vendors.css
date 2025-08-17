@@ -28,10 +28,10 @@
 /* Badges */
 .status-badge, .type-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:var(--radius-pill); font-size:12px; font-weight:700; line-height:1; }
 .status-active { background:var(--color-primary-soft); color:var(--color-success-deep); }
-.status-inactive { background:rgba(153,27,27,.08); color:var(--color-blocked); }
-.status-kyc-pending { background:rgba(245,158,11,.15); color:var(--color-maintenance); }
-.type-sku { background:rgba(2,132,199,.15); color:var(--color-info); }
-.type-flat { background:#ede9fe; color:#3730a3; }
+.status-inactive { background:color-mix(in srgb, var(--soft-error-bg) 40%, transparent); color:var(--color-blocked); }
+.status-kyc-pending { background:color-mix(in srgb, var(--soft-warn-bg) 60%, transparent); color:var(--color-maintenance); }
+.type-sku { background:color-mix(in srgb, var(--soft-info-bg) 55%, transparent); color:var(--color-info); }
+.type-flat { background:color-mix(in srgb, var(--soft-info-bg) 45%, transparent); color:var(--soft-info-text); }
 
 /* Action button (dropdown trigger) */
 .action-btn { color:var(--color-text-subtle); border-radius:var(--radius-md); }
@@ -65,15 +65,15 @@
 /* Vendor cards */
 .vendor-cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; margin:8px 0 20px; }
 .vendor-card { position:relative; overflow:hidden; border-radius:14px; background:var(--color-surface); border:1px solid var(--color-border); box-shadow:var(--shadow-md); transition:transform .15s ease, box-shadow .2s ease, border-color .2s ease; }
-.vendor-card::before { content:""; position:absolute; inset:0 0 auto 0; height:4px; background:linear-gradient(90deg,var(--color-primary),#60a5fa,#34d399); }
+.vendor-card::before { content:""; position:absolute; inset:0 0 auto 0; height:4px; background:linear-gradient(90deg,var(--color-primary), var(--chart-receiving), var(--chart-picking)); }
 .vendor-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-lg); border-color:var(--color-border-strong); }
 .vendor-card-header { padding:14px 16px; border-bottom:1px solid var(--color-border); display:flex; justify-content:space-between; align-items:center; }
 .vendor-card-name { font-weight:800; color:var(--color-text); letter-spacing:.2px; font-size:16px; }
 .vendor-card-meta { display:flex; gap:8px; margin-top:4px; }
 .vendor-card-meta .badge { font-size:11px; padding:4px 10px; border-radius:var(--radius-pill); background:var(--color-surface-alt); color:var(--color-text-soft); font-weight:600; }
 .vendor-card-meta .badge.status.status-active { background:var(--color-primary-soft); color:var(--color-success-deep); }
-.vendor-card-meta .badge.status.status-inactive { background:rgba(153,27,27,.08); color:var(--color-blocked); }
-.vendor-card-meta .badge.status.status-kyc-pending { background:rgba(245,158,11,.15); color:var(--color-maintenance); }
+.vendor-card-meta .badge.status.status-inactive { background:color-mix(in srgb, var(--soft-error-bg) 40%, transparent); color:var(--color-blocked); }
+.vendor-card-meta .badge.status.status-kyc-pending { background:color-mix(in srgb, var(--soft-warn-bg) 55%, transparent); color:var(--color-maintenance); }
 .vendor-card-body { display:grid; grid-template-columns:1fr 1fr; }
 .vendor-card-body .metric { padding:14px 16px; }
 .vendor-card-body .metric + .metric { border-left:1px solid var(--color-border); }
@@ -90,7 +90,7 @@
 /* Tabs (inside modal) */
 .tabs { display:flex; gap:8px; padding:12px 20px; border-bottom:1px solid var(--color-border); background:var(--color-surface); }
 .tab { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:var(--radius-pill); font-weight:700; font-size:13px; color:var(--color-text-subtle); background:var(--color-surface-alt); border:1px solid transparent; transition:all .15s ease; }
-.tab:hover { background:#e9eef7; }
+.tab:hover { background:var(--color-surface-alt); }
 .tab.active { background:var(--color-primary-soft); color:var(--color-primary); border-color:rgba(46,139,87,.15); }
 
 /* Nested card */

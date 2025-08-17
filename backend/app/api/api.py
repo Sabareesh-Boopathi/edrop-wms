@@ -1,7 +1,7 @@
 # filepath: backend/app/api/api.py
 from fastapi import APIRouter
 
-from app.api.endpoints import users, rwas, flats, customers, warehouses, products, login, orders, vendors, milestone, crates, racks, bins, notifications, stores, config
+from app.api.endpoints import users, rwas, flats, customers, warehouses, products, login, orders, vendors, milestone, crates, racks, bins, notifications, stores, config, inbound
 
 api_router = APIRouter()
 api_router.include_router(login.router, tags=["Login"])
@@ -20,3 +20,4 @@ api_router.include_router(bins.router, tags=["Bins"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["Notifications"])
 api_router.include_router(stores.router, prefix="/stores", tags=["Stores"])
 api_router.include_router(config.router, tags=["Configuration"])
+api_router.include_router(inbound.router)

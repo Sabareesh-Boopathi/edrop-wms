@@ -1,7 +1,7 @@
 .location-picker-content {
-    background-color: white;
-    border-radius: 1rem;
-    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 10%), 0 8px 10px -6px rgb(0 0 0 / 10%);
+    background-color: var(--color-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
     padding: 1.5rem;
     width: 90vw;
     max-width: 800px;
@@ -12,10 +12,10 @@
 
 .map-container {
     flex-grow: 1;
-    border-radius: 0.5rem;
+    border-radius: var(--radius-md);
     overflow: hidden;
     margin-top: 1rem;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
 }
 
 .leaflet-container {
@@ -46,7 +46,7 @@
 
 .selected-coords {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--color-text-subtle);
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 

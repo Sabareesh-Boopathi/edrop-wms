@@ -1,12 +1,12 @@
 /* Shared utility classes leveraging design tokens */
 @import url('./tokens.css');
 
-.btn-primary-token { background: var(--color-primary); color:#fff; border:1px solid var(--color-primary-hover); border-radius: var(--radius-sm); padding:6px 14px; font-weight:600; cursor:pointer; box-shadow: var(--shadow-sm); transition: background .2s, box-shadow .2s; }
+.btn-primary-token { background: var(--color-primary); color: var(--color-white); border:1px solid var(--color-primary-hover); border-radius: var(--radius-sm); padding: var(--control-padding-y) calc(var(--control-padding-x) + 4px); font-weight:600; cursor:pointer; box-shadow: var(--shadow-sm); transition: background .2s, box-shadow .2s; font-size: var(--font-size-sm); }
 .btn-primary-token:hover { background: var(--color-primary-hover); box-shadow: var(--shadow-md); }
-.btn-outline-token { background: var(--color-surface); color: var(--color-primary-hover); border:1px solid var(--color-primary-hover); border-radius: var(--radius-sm); padding:6px 14px; font-weight:600; cursor:pointer; }
+.btn-outline-token { background: var(--color-surface); color: var(--color-primary-hover); border:1px solid var(--color-primary-hover); border-radius: var(--radius-sm); padding: var(--control-padding-y) calc(var(--control-padding-x) + 4px); font-weight:600; cursor:pointer; font-size: var(--font-size-sm); }
 .btn-outline-token:hover { background: var(--color-primary-soft); }
 
-.chip { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius: var(--radius-pill); font-size:12px; font-weight:600; line-height:1; }
+.chip { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius: var(--radius-pill); font-size: var(--font-size-xs); font-weight:600; line-height:1; }
 .chip-util-low { background: var(--util-low-bg); border:1px solid var(--util-low-border); color: var(--util-low-text); }
 .chip-util-med { background: var(--util-med-bg); border:1px solid var(--util-med-border); color: var(--util-med-text); }
 .chip-util-high { background: var(--util-high-bg); border:1px solid var(--util-high-border); color: var(--util-high-text); }
@@ -15,5 +15,5 @@
 .focus-outline-primary:focus-visible { outline:2px solid var(--color-primary); outline-offset:2px; }
 
 /* Trend badges */
-.trend-up { color:#34d399; background:rgb(52 211 153 / 12%); }
-.trend-down { color:#f87171; background:rgb(248 113 113 / 12%); }
+.trend-up { color: var(--color-success); background: color-mix(in srgb, var(--color-success) 18%, transparent); }
+.trend-down { color: var(--color-error); background: color-mix(in srgb, var(--color-error) 12%, transparent); }

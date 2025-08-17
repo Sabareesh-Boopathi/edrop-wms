@@ -64,6 +64,7 @@ const menuItems: MenuItem[] = [
     basePath: '/administration',
     subItems: [
       { name: 'Warehouse Mgmt', path: '/administration/warehouse-management' },
+      { name: 'Bay Management', path: '/administration/bay-management' },
       { name: 'Users & Roles', path: '/administration/users-roles' },
       { name: 'Vendors', path: '/administration/vendors' },
       { name: 'Crate Management', path: '/administration/crate-management' },
@@ -80,7 +81,7 @@ const menuItems: MenuItem[] = [
       { name: 'Fulfillment Accuracy', path: '/reports/fulfillment-accuracy' },
       { name: 'Crate Utilization', path: '/reports/crate-utilization' },
       { name: 'Emission Savings', path: '/reports/emission-savings' },
-  { name: 'Audit Log', path: '/reports/audit-log' },
+      { name: 'Audit Log', path: '/reports/audit-log' },
     ]
   },
   { 

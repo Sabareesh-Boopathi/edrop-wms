@@ -6,7 +6,7 @@ import 'leaflet-geosearch/dist/geosearch.css';
 import L from 'leaflet';
 import { Button } from './ui/button';
 import { X, MapPin, LocateFixed } from 'lucide-react';
-import { toast } from 'sonner';
+import * as notify from '../lib/notify';
 
 // Fix for default icon issue with webpack
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -58,10 +58,10 @@ const SearchAndLocate = ({ onSelect }: { onSelect: (lat: number, lng: number) =>
         map.locate().on('locationfound', function (e) {
             onSelect(e.latlng.lat, e.latlng.lng);
             map.flyTo(e.latlng, 13);
-            toast.success("Location found!");
+            notify.success("Location found!");
         }).on('locationerror', function(e){
             console.log(e);
-            toast.error("Could not find your location.");
+            notify.error("Could not find your location.");
         });
     };
   
@@ -91,10 +91,10 @@ const LocationPicker: React.FC<LocationPickerProps> = ({ onClose, onLocationSele
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     setPosition([pos.coords.latitude, pos.coords.longitude]);
-                    toast.info("Your current location has been set as the starting point.");
+                    notify.info("Your current location has been set as the starting point.");
                 },
                 () => {
-                    toast.warning("Could not get your location. Using default.");
+                    notify.warn("Could not get your location. Using default.");
                 }
             );
         }

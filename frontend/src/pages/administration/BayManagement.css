@@ -1,0 +1,46 @@
+@import '../../theme/tokens.css';
+
+.bay-board { display:grid; grid-template-columns: 1fr 1fr; gap:20px; }
+.bay-lane { background: var(--color-surface); border:1px solid var(--color-border); border-radius: var(--radius-lg); overflow:hidden; box-shadow: var(--shadow-md); }
+.bay-lane-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--color-border); }
+.bay-lane-title { font-weight:800; color: var(--color-text); }
+.bay-lane-subtitle { font-size:12px; color: var(--color-text-subtle); }
+.bay-cards { padding:14px; display:grid; gap:12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+
+.parking-row { margin-top:20px; background: linear-gradient(180deg, var(--color-surface), var(--color-surface-alt)); border:1px dashed var(--color-border-strong); border-radius: var(--radius-lg); padding:12px; }
+.parking-title { font-weight:700; color: var(--color-text); margin:0 0 8px; display:flex; align-items:center; gap:8px; }
+
+.icon-button { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:8px; border:1px solid var(--color-border); background: var(--color-surface); cursor:pointer; transition: all .2s ease; }
+.icon-button:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+/* Use info/warn/success/error tokens for button variants */
+.icon-button--edit { color:var(--color-info); border-color: color-mix(in srgb, var(--color-info) 35%, transparent); background: color-mix(in srgb, var(--color-info) 8%, transparent); }
+.icon-button--delete { color:var(--color-error); border-color: color-mix(in srgb, var(--color-error) 35%, transparent); background: color-mix(in srgb, var(--color-error) 8%, transparent); }
+.icon-button--switch { color:var(--color-success); border-color: color-mix(in srgb, var(--color-success) 35%, transparent); background: color-mix(in srgb, var(--color-success) 10%, transparent); }
+.icon-button--maint { color:var(--color-warning); border-color: color-mix(in srgb, var(--color-warning) 35%, transparent); background: color-mix(in srgb, var(--color-warn) 12%, transparent); }
+/* New compact action variants */
+.icon-button--release { color:var(--color-success-deep); border-color: color-mix(in srgb, var(--color-success) 35%, transparent); background: color-mix(in srgb, var(--color-success) 14%, transparent); }
+.icon-button--arrive { color:var(--color-info); border-color: color-mix(in srgb, var(--color-info) 35%, transparent); background: color-mix(in srgb, var(--color-info) 10%, transparent); }
+.icon-button--assign { color:var(--color-success); border-color: color-mix(in srgb, var(--color-success) 35%, transparent); background: color-mix(in srgb, var(--color-success) 12%, transparent); }
+
+@keyframes cardIn { from { opacity:0; transform: translateY(6px);} to { opacity:1; transform: translateY(0);} }
+.bay-card-anim { animation: cardIn .28s ease both; }
+
+.status-chip.success { background: color-mix(in srgb, var(--color-success) 18%, transparent); color:var(--color-success-deep); }
+.status-chip.info { background: color-mix(in srgb, var(--color-info) 18%, transparent); color:color-mix(in srgb, var(--color-info) 70%, var(--color-black)); }
+.status-chip.warn { background: color-mix(in srgb, var(--color-warn) 16%, transparent); color:var(--color-warn-deep); }
+.status-chip.error { background: color-mix(in srgb, var(--color-error) 16%, transparent); color:color-mix(in srgb, var(--color-error) 70%, var(--color-black)); }
+
+/* Compact indicators for header to avoid overflow */
+.status-dot { width:10px; height:10px; border-radius:999px; display:inline-block; border:1px solid var(--color-border-strong); }
+.status-dot--empty { background:var(--color-border); border-color:var(--color-border-strong); }
+.status-dot--reserved { background: color-mix(in srgb, var(--color-info) 25%, transparent); border-color: color-mix(in srgb, var(--color-info) 55%, transparent); }
+.status-dot--vehicle_present { background: color-mix(in srgb, var(--color-success) 35%, transparent); border-color: color-mix(in srgb, var(--color-success) 65%, transparent); }
+.status-dot--maintenance { background: color-mix(in srgb, var(--color-error) 30%, transparent); border-color: color-mix(in srgb, var(--color-error) 60%, transparent); }
+
+.pill-mini { display:inline-flex; align-items:center; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:700; background: var(--color-surface-alt); color: var(--color-text-soft); border:1px solid var(--color-border); letter-spacing:.04em; }
+
+/* Ensure bay card header action group can wrap to avoid overflow */
+.bay-cards .inbound-card-header .inline-actions { flex-wrap: wrap; gap:6px; justify-content:flex-end; }
+
+/* Sleek footer actionbar */
+.bay-actionbar { display:flex; gap:8px; justify-content:flex-end; width:100%; }

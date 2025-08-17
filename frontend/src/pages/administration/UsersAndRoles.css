@@ -2,27 +2,13 @@
 @import url('./WarehouseManagement.css');
 
 /* Specific styles for User & Role Management */
-.user-name {
-    font-weight: 500;
-    color: #1f2937; /* text-gray-800 */
-}
+.user-name { font-weight: 500; color: var(--color-text); }
 
-.user-email {
-    font-size: 0.875rem; /* text-sm */
-    color: #6b7280; /* text-gray-500 */
-}
+.user-email { font-size: 0.875rem; color: var(--color-text-subtle); }
 
-.contact-info {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
-    color: #6b7280;
-}
+.contact-info { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; color: var(--color-text-subtle); }
 
-.last-login-text {
-    color: #4b5563; /* text-gray-600 */
-}
+.last-login-text { color: var(--color-text-soft); }
 
 .role-badge {
     display: inline-block;
@@ -34,25 +20,13 @@
     letter-spacing: 0.05em;
 }
 
-.role-admin {
-    background-color: #fee2e2; /* bg-red-100 */
-    color: #b91c1c; /* text-red-800 */
-}
+.role-admin { background-color: var(--soft-error-bg); color: var(--soft-error-text); }
 
-.role-manager {
-    background-color: #dbeafe; /* bg-blue-100 */
-    color: #1e40af; /* text-blue-800 */
-}
+.role-manager { background-color: var(--soft-info-bg); color: var(--soft-info-text); }
 
-.role-operator {
-    background-color: #fef3c7; /* bg-amber-100 */
-    color: #92400e; /* text-amber-800 */
-}
+.role-operator { background-color: var(--soft-warn-bg); color: var(--soft-warn-text); }
 
-.role-viewer {
-    background-color: #e5e7eb; /* bg-gray-200 */
-    color: #4b5563; /* text-gray-600 */
-}
+.role-viewer { background-color: var(--color-surface-alt); color: var(--color-text-soft); }
 
 .add-user-btn {
     display: flex;
@@ -65,12 +39,12 @@
     border-radius: 0.5rem;
     border: none;
     cursor: pointer;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -2px rgb(0 0 0 / 10%);
+    box-shadow: var(--shadow-sm);
     transition: all 0.3s ease;
 }
 
 .add-user-btn:hover {
     background-color: var(--color-primary) !important; /* themed */
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 10%), 0 4px 6px -4px rgb(0 0 0 / 10%);
+    box-shadow: var(--shadow-lg);
     transform: translateY(-2px);
 }

@@ -1,0 +1,82 @@
+.table-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(16,24,40,.04), 0 2px 6px rgba(16,24,40,.06);
+}
+
+.table-card-header {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.table-card-header .title {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.table-card-filters {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.table-card-footer {
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Table look similar to inbound-table */
+.table-card table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+.table-card thead tr {
+  background: var(--color-surface-alt);
+}
+.table-card th,
+.table-card td {
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--table-cell-py) var(--table-cell-px);
+  text-align: left;
+}
+.table-card th {
+  font-size: 12px;
+  letter-spacing: .05em;
+  font-weight: 600;
+  color: var(--color-text-subtle);
+}
+.table-card tbody tr:hover {
+  background: var(--color-surface-alt);
+}
+
+/* Labeled fields in header */
+.table-field { display:flex; flex-direction:column; gap:4px; min-width: 220px; }
+.table-field.small { min-width: 160px; }
+.table-field.wide { min-width: 280px; }
+.table-field label { font-size:12px; font-weight:600; color: var(--color-text-subtle); }
+.table-field input,
+.table-field select { height: var(--control-height-md); border-radius: var(--radius-sm); border:1px solid var(--color-border-strong); background: var(--color-surface); padding: var(--control-padding-y) var(--control-padding-x); font-size: var(--font-size-sm); }
+
+.table-search { position: relative; }
+.table-search .icon { position:absolute; left:10px; top:50%; transform: translateY(-50%); color: var(--color-text-muted); }
+.table-search input { padding-left: 30px; }
+
+/* Inbound variant (matches inbound-table visuals) */
+.inbound-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); overflow: hidden; }
+.inbound-card-header { padding: 12px 16px; border-bottom: 1px solid var(--color-border); background: var(--color-bg); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.inbound-card-title { font-weight: 700; color: var(--color-text); font-size: 16px; }
+.inbound-card-content { padding: 0; }

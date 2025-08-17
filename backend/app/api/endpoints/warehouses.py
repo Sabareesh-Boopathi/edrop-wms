@@ -7,7 +7,8 @@ from app.api import deps
 from app.crud import crud_warehouse
 from app.models.user import User
 from app.schemas.warehouse import Warehouse, WarehouseCreate, WarehouseUpdate
-from app.schemas.store_products import StoreProduct as StoreProductSchema  # Import the StoreProduct schema
+from app.schemas.inventory import WarehouseInventoryRow  # schema for enriched inventory rows
+from fastapi import Query
 from app.schemas.crate import Crate  # Import the Crate schema
 
 router = APIRouter()
@@ -78,19 +79,34 @@ def delete_warehouse(
     logger.info(f"✅ Warehouse '{deleted_warehouse.id}' deleted successfully by admin '{current_user.id}'.")
     return deleted_warehouse
 
-@router.get("/{warehouse_id}/products", response_model=List[StoreProductSchema])
+@router.get("/{warehouse_id}/products")
 def get_warehouse_products(
     warehouse_id: uuid.UUID,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_active_user),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(25, ge=1, le=500),
+    sort_by: str = Query("product_name"),
+    sort_dir: str = Query("asc"),
+    q: str | None = Query(None),
 ):
     """
     Retrieve all products stored in a warehouse.
     """
     logger.info(f"🔍 User '{current_user.id}' fetching products for warehouse '{warehouse_id}'.")
     # Assuming a method exists to fetch products by warehouse
-    products = crud_warehouse.warehouse.get_products(db, warehouse_id=warehouse_id)
-    return products
+    data = crud_warehouse.warehouse.get_products(
+        db,
+        warehouse_id=warehouse_id,
+        skip=skip,
+        limit=limit,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+        q=q,
+    )
+    # response: { items: WarehouseInventoryRow[], total: number }
+    data["items"] = [WarehouseInventoryRow(**r) for r in data["items"]]
+    return data
 
 @router.get("/{warehouse_id}/crates", response_model=List[Crate])
 def get_warehouse_crates(

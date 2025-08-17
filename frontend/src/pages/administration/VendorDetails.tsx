@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, PlusCircle, Store as StoreIcon, Package, MapPin, Edit, Trash2, Save } from 'lucide-react';
+import { X, PlusCircle, Store as StoreIcon, Package, MapPin, Edit, Trash2, Save, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '../../components/ui/button';
-import { toast } from 'sonner';
+import * as notify from '../../lib/notify';
 import * as vendorService from '../../services/vendorService';
 import * as storeService from '../../services/storeService';
 import * as productService from '../../services/productService';
 import LocationPicker from '../../components/LocationPicker';
-import './Vendors.css';
+import './VendorDetails.css'
+import TableCard from '../../components/table/TableCard';
 
 export interface VendorDetailsProps {
   vendor: { id: string; business_name: string; };
@@ -19,6 +20,9 @@ const VendorDetails: React.FC<VendorDetailsProps> = ({ vendor, open, onClose }) 
   const [activeTab, setActiveTab] = useState<'stores' | 'products'>('stores');
   const [stores, setStores] = useState<vendorService.StoreDTO[]>([]);
   const [isLoadingStores, setIsLoadingStores] = useState(false);
+  // Pagination: stores
+  const [storePage, setStorePage] = useState(1);
+  const [storePageSize] = useState(5);
 
   // Global filter text for current tab
   const [filterText, setFilterText] = useState('');
@@ -54,6 +58,9 @@ const VendorDetails: React.FC<VendorDetailsProps> = ({ vendor, open, onClose }) 
 
   // Products tab state
   const [products, setProducts] = useState<productService.ProductDTO[]>([]);
+  // Pagination: products
+  const [productPage, setProductPage] = useState(1);
+  const [productPageSize] = useState(5);
   const [newProduct, setNewProduct] = useState<productService.CreateProductDTO>({ name: '', sku: '', price: 0, description: '', vendor_id: vendor.id });
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [editProduct, setEditProduct] = useState<productService.UpdateProductDTO>({});
@@ -65,11 +72,23 @@ const VendorDetails: React.FC<VendorDetailsProps> = ({ vendor, open, onClose }) 
     return stores.filter(s => s.store_name?.toLowerCase().includes(q));
   }, [stores, filterText]);
 
+  const storePageCount = Math.max(1, Math.ceil(filteredStores.length / storePageSize));
+  const pagedStores = useMemo(() => {
+    const start = (storePage - 1) * storePageSize;
+    return filteredStores.slice(start, start + storePageSize);
+  }, [filteredStores, storePage, storePageSize]);
+
   const filteredProducts = useMemo(() => {
     const q = filterText.trim().toLowerCase();
     if (!q) return products;
     return products.filter(p => (p.name?.toLowerCase().includes(q) || p.sku?.toLowerCase().includes(q)));
   }, [products, filterText]);
+
+  const productPageCount = Math.max(1, Math.ceil(filteredProducts.length / productPageSize));
+  const pagedProducts = useMemo(() => {
+    const start = (productPage - 1) * productPageSize;
+    return filteredProducts.slice(start, start + productPageSize);
+  }, [filteredProducts, productPage, productPageSize]);
 
   const loadStores = useCallback(async () => {
     try {
@@ -77,7 +96,7 @@ const VendorDetails: React.FC<VendorDetailsProps> = ({ vendor, open, onClose }) 
       const data = await vendorService.getVendorStores(vendor.id);
       setStores(data);
     } catch (err: any) {
-      toast.error(getErrorMessage(err));
+      notify.error(getErrorMessage(err));
     } finally {
       setIsLoadingStores(false);
     }
@@ -88,7 +107,7 @@ const VendorDetails: React.FC<VendorDetailsProps> = ({ vendor, open, onClose }) 
       const list = await storeService.listStoreProducts(storeId);
       setStoreProducts(prev => ({ ...prev, [storeId]: list }));
     } catch (err: any) {
-      toast.error(getErrorMessage(err));
+      notify.error(getErrorMessage(err));
     }
   };
 
@@ -98,7 +117,7 @@ const VendorDetails: React.FC<VendorDetailsProps> = ({ vendor, open, onClose }) 
       const list = await productService.listProducts();
       setAllProducts(list);
     } catch (err: any) {
-      toast.error(getErrorMessage(err));
+      notify.error(getErrorMessage(err));
     }
   };
 
@@ -107,13 +126,13 @@ const VendorDetails: React.FC<VendorDetailsProps> = ({ vendor, open, onClose }) 
       const list = await productService.listProducts();
       setProducts(list);
     } catch (err: any) {
-      toast.error(getErrorMessage(err));
+      notify.error(getErrorMessage(err));
     }
   };
 
   const handleCreateStore = async () => {
     if (!newStore.store_name || !newStore.store_status) {
-      toast.error('Store name and status are required');
+      notify.error('Store name and status are required');
       return;
     }
     try {
@@ -123,9 +142,9 @@ const VendorDetails: React.FC<VendorDetailsProps> = ({ vendor, open, onClose }) 
       // Link initial products, if any
       if (initialProducts.length > 0) {
         await Promise.all(initialProducts.map(p => storeService.addStoreProduct(created.id, p)));
-        toast.success(`Store created with ${initialProducts.length} product${initialProducts.length > 1 ? 's' : ''}`);
+        notify.success(`Store created with ${initialProducts.length} product${initialProducts.length > 1 ? 's' : ''}`);
       } else {
-        toast.success('Store created');
+        notify.success('Store created');
       }
 
       setCreateStoreOpen(false);
@@ -133,7 +152,7 @@ const VendorDetails: React.FC<VendorDetailsProps> = ({ vendor, open, onClose }) 
       setInitialProducts([]);
       setInitialNewProduct({ product_id: '', available_qty: 0, price: 0 });
     } catch (err: any) {
-      toast.error(getErrorMessage(err));
+      notify.error(getErrorMessage(err));
     }
   };
 
@@ -150,28 +169,21 @@ const VendorDetails: React.FC<VendorDetailsProps> = ({ vendor, open, onClose }) 
         bin_code: undefined, // bins differ per store
       }));
       setInitialProducts(mapped);
-      toast.success(`Cloned ${mapped.length} products from source store`);
+      notify.success(`Cloned ${mapped.length} products from source store`);
     } catch (err: any) {
-      toast.error(getErrorMessage(err));
+      notify.error(getErrorMessage(err));
     }
   }, [ensureProductsLoaded]);
 
   const handleDeleteStore = async (storeId: string) => {
-    toast.error('Are you sure you want to delete this store?', {
-      action: {
-        label: 'Delete',
-        onClick: async () => {
-          try {
-            await storeService.deleteStore(storeId);
-            setStores(prev => prev.filter(s => s.id !== storeId));
-            toast.success('Store deleted');
-          } catch (err: any) {
-            toast.error(getErrorMessage(err));
-          }
-        }
-      },
-      cancel: { label: 'Cancel', onClick: () => toast.dismiss() }
-    });
+    if (!window.confirm('Delete this store?')) return; // quicker confirm
+    try {
+      await storeService.deleteStore(storeId);
+      setStores(prev => prev.filter(s => s.id !== storeId));
+      notify.success('Store deleted');
+    } catch (err: any) {
+      notify.error(getErrorMessage(err));
+    }
   };
 
   const handleToggleStoreExpand = async (storeId: string) => {
@@ -185,7 +197,7 @@ const VendorDetails: React.FC<VendorDetailsProps> = ({ vendor, open, onClose }) 
 
   const handleAddProductToStore = async (storeId: string) => {
     if (!newStoreProduct.product_id) {
-      toast.error('Select a product');
+      notify.error('Select a product');
       return;
     }
     try {
@@ -194,38 +206,31 @@ const VendorDetails: React.FC<VendorDetailsProps> = ({ vendor, open, onClose }) 
         ...prev,
         [storeId]: [ ...(prev[storeId] || []), created ]
       }));
-      toast.success('Product added to store');
+      notify.success('Product added to store');
       setNewStoreProduct({ product_id: '', available_qty: 0, price: 0 });
     } catch (err: any) {
-      toast.error(getErrorMessage(err));
+      notify.error(getErrorMessage(err));
     }
   };
 
   const handleDeleteStoreProduct = async (storeId: string, spId: string) => {
-    toast.error('Delete this store product?', {
-      action: {
-        label: 'Delete',
-        onClick: async () => {
-          try {
-            await storeService.deleteStoreProduct(storeId, spId);
-            setStoreProducts(prev => ({
-              ...prev,
-              [storeId]: (prev[storeId] || []).filter((sp: storeService.StoreProductDTO) => sp.id !== spId)
-            }));
-            toast.success('Removed');
-          } catch (err: any) {
-            toast.error(getErrorMessage(err));
-          }
-        }
-      },
-      cancel: { label: 'Cancel', onClick: () => toast.dismiss() }
-    });
+    if (!window.confirm('Remove this product from store?')) return; // quicker confirm
+    try {
+      await storeService.deleteStoreProduct(storeId, spId);
+      setStoreProducts(prev => ({
+        ...prev,
+        [storeId]: (prev[storeId] || []).filter((sp: storeService.StoreProductDTO) => sp.id !== spId)
+      }));
+      notify.success('Removed');
+    } catch (err: any) {
+      notify.error(getErrorMessage(err));
+    }
   };
 
   // Products CRUD
   const handleAddProduct = async () => {
     if (!newProduct.name || !newProduct.sku) {
-      toast.error('Name and SKU are required');
+      notify.error('Name and SKU are required');
       return;
     }
     try {
@@ -234,9 +239,9 @@ const VendorDetails: React.FC<VendorDetailsProps> = ({ vendor, open, onClose }) 
       setAllProducts(prev => [created, ...prev]);
       setNewProduct({ name: '', sku: '', price: 0, description: '', vendor_id: vendor.id });
       setCreateProductOpen(false); // close form after add
-      toast.success('Product created');
+      notify.success('Product created');
     } catch (err: any) {
-      toast.error(getErrorMessage(err));
+      notify.error(getErrorMessage(err));
     }
   };
 
@@ -258,29 +263,22 @@ const VendorDetails: React.FC<VendorDetailsProps> = ({ vendor, open, onClose }) 
       setAllProducts(prev => prev.map(p => (p.id === editingProductId ? updated : p)));
       setEditingProductId(null);
       setEditProduct({});
-      toast.success('Product updated');
+      notify.success('Product updated');
     } catch (err: any) {
-      toast.error(getErrorMessage(err));
+      notify.error(getErrorMessage(err));
     }
   };
 
   const deleteProduct = async (productId: string) => {
-    toast.error('Delete product permanently?', {
-      action: {
-        label: 'Delete',
-        onClick: async () => {
-          try {
-            await productService.deleteProduct(productId);
-            setProducts(prev => prev.filter(p => p.id !== productId));
-            setAllProducts(prev => prev.filter(p => p.id !== productId));
-            toast.success('Product deleted');
-          } catch (err: any) {
-            toast.error(getErrorMessage(err));
-          }
-        }
-      },
-      cancel: { label: 'Cancel', onClick: () => toast.dismiss() }
-    });
+    if (!window.confirm('Delete this product?')) return; // quicker confirm
+    try {
+      await productService.deleteProduct(productId);
+      setProducts(prev => prev.filter(p => p.id !== productId));
+      setAllProducts(prev => prev.filter(p => p.id !== productId));
+      notify.success('Product deleted');
+    } catch (err: any) {
+      notify.error(getErrorMessage(err));
+    }
   };
 
   // Load stores on open
@@ -295,6 +293,12 @@ const VendorDetails: React.FC<VendorDetailsProps> = ({ vendor, open, onClose }) 
       ensureProductsLoaded();
     }
   }, [createStoreOpen]);
+
+  // Reset pagination on filter change or tab switch
+  useEffect(() => {
+    setStorePage(1);
+    setProductPage(1);
+  }, [filterText, activeTab]);
 
   // Load products for Products tab
   useEffect(() => {
@@ -314,274 +318,286 @@ const VendorDetails: React.FC<VendorDetailsProps> = ({ vendor, open, onClose }) 
         </div>
 
         <div className="tabs-bar">
-          <div className="tabs">
-            <button className={`tab ${activeTab === 'stores' ? 'active' : ''}`} onClick={() => setActiveTab('stores')}>
-              <StoreIcon size={16} style={{ marginRight: 6 }} /> Stores
-            </button>
-            <button className={`tab ${activeTab === 'products' ? 'active' : ''}`} onClick={() => setActiveTab('products')}>
-              <Package size={16} style={{ marginRight: 6 }} /> Products
-            </button>
-          </div>
-          <div className="tabs-right">
-            <input
-              className="filter-input"
-              placeholder={activeTab === 'stores' ? 'Filter stores…' : 'Filter products…'}
-              value={filterText}
-              onChange={(e) => setFilterText(e.target.value)}
-            />
-            <Button
-              className="btn-primary-token"
-              onClick={activeTab === 'stores' ? () => setCreateStoreOpen(true) : () => setCreateProductOpen(true)}
+          <div className="vd-tabs">
+            <button
+              className={`vd-tab-chip ${activeTab === 'stores' ? 'active' : ''}`}
+              onClick={() => setActiveTab('stores')}
+              aria-pressed={activeTab === 'stores'}
             >
-              <PlusCircle className="icon" /> {activeTab === 'stores' ? 'Add Store' : 'Add Product'}
-            </Button>
+              <StoreIcon size={16} />
+              <span>Stores</span>
+            </button>
+            <button
+              className={`vd-tab-chip ${activeTab === 'products' ? 'active' : ''}`}
+              onClick={() => setActiveTab('products')}
+              aria-pressed={activeTab === 'products'}
+            >
+              <Package size={16} />
+              <span>Products</span>
+            </button>
           </div>
         </div>
 
         {activeTab === 'stores' && (
           <div className="tab-panel">
-            <div className="card-header">
-              <h4 className="card-title">Stores</h4>
-            </div>
-
-            <div className="card">
-              <div className="card-content">
-                {isLoadingStores ? (
-                  <div>Loading stores…</div>
-                ) : (
-                  <>
-                    {createStoreOpen && (
-                      <div className="nested-card" style={{ marginBottom: 12 }}>
-                        <h5>New Store</h5>
-                        <div className="form-grid">
-                          <div className="form-group">
-                            <label>Name</label>
-                            <input value={newStore.store_name} onChange={e => setNewStore(s => ({ ...s, store_name: e.target.value }))} placeholder="e.g., Main Street Store" />
-                          </div>
-                          <div className="form-group">
-                            <label>Status</label>
-                            <select value={newStore.store_status} onChange={e => setNewStore(s => ({ ...s, store_status: e.target.value }))}>
-                              <option value="ACTIVE">ACTIVE</option>
-                              <option value="INACTIVE">INACTIVE</option>
-                            </select>
-                          </div>
-                          <div className="form-group form-group-span-2">
-                            <label>Address</label>
-                            <input value={newStore.address || ''} onChange={e => setNewStore(s => ({ ...s, address: e.target.value }))} placeholder="Street, City, ZIP" />
-                          </div>
-                          <div className="form-group form-group-span-2">
-                            <label>Location</label>
-                            <div className="location-picker-group">
-                              <input value={newStore.latitude ?? ''} placeholder="Latitude" disabled />
-                              <input value={newStore.longitude ?? ''} placeholder="Longitude" disabled />
-                              <Button type="button" className="btn-outline-token map-picker-btn" onClick={() => setIsMapOpen(true)}>
-                                <MapPin size={16} /> Pick from Map
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="form-group form-group-span-2">
-                            <label>Clone products from existing store (optional)</label>
-                            <div className="location-picker-group" style={{ gap: 8 }}>
-                              <select
-                                value={cloneSourceStoreId}
-                                onChange={(e) => {
-                                  const id = e.target.value;
-                                  setCloneSourceStoreId(id);
-                                }}
-                              >
-                                <option value="">Select source store</option>
-                                {stores.map(s => (
-                                  <option key={s.id} value={s.id}>{s.store_name}</option>
-                                ))}
-                              </select>
-                              <Button
-                                type="button"
-                                className="btn-outline-token"
-                                onClick={() => {
-                                  if (!cloneSourceStoreId) { toast.error('Select a source store'); return; }
-                                  handleCloneFromStore(cloneSourceStoreId);
-                                }}
-                              >
-                                Clone
-                              </Button>
-                              {initialProducts.length > 0 && (
-                                <Button
-                                  type="button"
-                                  className="btn-outline-token"
-                                  onClick={() => setInitialProducts([])}
-                                >
-                                  Reset
-                                </Button>
-                              )}
-                            </div>
-                            <small className="muted">Cloning copies the product list. Quantities are reset to 0. Bin codes are not copied.</small>
+            <TableCard
+              variant="inbound"
+              title="Stores"
+              search={<input className="filter-input" placeholder="Filter stores…" value={filterText} onChange={(e)=>setFilterText(e.target.value)} />}
+              actions={<Button className="btn-primary-token" onClick={()=>setCreateStoreOpen(true)}><PlusCircle className="icon"/> Add Store</Button>}
+              footer={
+                <>
+                  <span style={{fontSize:12,color:'var(--color-text-dim)'}}>Total stores: {filteredStores.length}</span>
+                  <div style={{display:'inline-flex',gap:6,alignItems:'center'}}>
+                    <button type="button" className="pager-btn" title="Previous" disabled={storePage<=1} onClick={()=>setStorePage(p=>Math.max(1,p-1))}><ChevronLeft size={16}/></button>
+                    <span style={{fontSize:12}}>Page {storePage} / {storePageCount}</span>
+                    <button type="button" className="pager-btn" title="Next" disabled={storePage>=storePageCount} onClick={()=>setStorePage(p=>Math.min(storePageCount,p+1))}><ChevronRight size={16}/></button>
+                  </div>
+                </>
+              }
+            >
+              {isLoadingStores ? (
+                <div>Loading stores…</div>
+              ) : (
+                <>
+                  {createStoreOpen && (
+                    <div className="nested-card" style={{ marginBottom: 12 }}>
+                      <h5>New Store</h5>
+                      <div className="form-grid">
+                        <div className="form-group">
+                          <label>Name</label>
+                          <input value={newStore.store_name} onChange={e => setNewStore(s => ({ ...s, store_name: e.target.value }))} placeholder="e.g., Main Street Store" />
+                        </div>
+                        <div className="form-group">
+                          <label>Status</label>
+                          <select value={newStore.store_status} onChange={e => setNewStore(s => ({ ...s, store_status: e.target.value }))}>
+                            <option value="ACTIVE">ACTIVE</option>
+                            <option value="INACTIVE">INACTIVE</option>
+                          </select>
+                        </div>
+                        <div className="form-group form-group-span-2">
+                          <label>Address</label>
+                          <input value={newStore.address || ''} onChange={e => setNewStore(s => ({ ...s, address: e.target.value }))} placeholder="Street, City, ZIP" />
+                        </div>
+                        <div className="form-group form-group-span-2">
+                          <label>Location</label>
+                          <div className="location-picker-group">
+                            <input value={newStore.latitude ?? ''} placeholder="Latitude" disabled />
+                            <input value={newStore.longitude ?? ''} placeholder="Longitude" disabled />
+                            <Button type="button" className="btn-outline-token map-picker-btn" onClick={() => setIsMapOpen(true)}>
+                              <MapPin size={16} /> Pick from Map
+                            </Button>
                           </div>
                         </div>
-
-                        {/* Initial products for this store */}
-                        <div className="nested-card" style={{ marginTop: 12 }}>
-                          <h5>Initial Products (optional)</h5>
-                          <div className="inline-form" style={{ marginBottom: 8 }}>
-                            <select value={initialNewProduct.product_id} onChange={(e) => setInitialNewProduct(p => ({ ...p, product_id: e.target.value }))}>
-                              <option value="">Select product</option>
-                              {allProducts.map(p => (
-                                <option key={p.id} value={p.id}>{p.name}</option>
+                        <div className="form-group form-group-span-2">
+                          <label>Clone products from existing store (optional)</label>
+                          <div className="location-picker-group" style={{ gap: 8 }}>
+                            <select
+                              value={cloneSourceStoreId}
+                              onChange={(e) => {
+                                const id = e.target.value;
+                                setCloneSourceStoreId(id);
+                              }}
+                            >
+                              <option value="">Select source store</option>
+                              {stores.map(s => (
+                                <option key={s.id} value={s.id}>{s.store_name}</option>
                               ))}
                             </select>
-                            <input type="number" placeholder="Qty" value={initialNewProduct.available_qty} onChange={(e) => setInitialNewProduct(p => ({ ...p, available_qty: Number(e.target.value) }))} />
-                            <input type="number" step="0.01" placeholder="Price" value={initialNewProduct.price} onChange={(e) => setInitialNewProduct(p => ({ ...p, price: Number(e.target.value) }))} />
-                            <input type="text" placeholder="Bin code" value={initialNewProduct.bin_code || ''} onChange={(e) => setInitialNewProduct(p => ({ ...p, bin_code: e.target.value }))} />
-                            <Button className="btn-primary-token" onClick={() => {
-                              if (!initialNewProduct.product_id) { toast.error('Select a product'); return; }
-                              setInitialProducts(prev => [...prev, initialNewProduct]);
-                              setInitialNewProduct({ product_id: '', available_qty: 0, price: 0 });
-                            }}><PlusCircle className="icon" /> Add</Button>
+                            <Button type="button" className="btn-outline-token" onClick={() => {
+                              if (!cloneSourceStoreId) { notify.error('Select a source store'); return; }
+                              handleCloneFromStore(cloneSourceStoreId);
+                            }}>Clone</Button>
+                            {initialProducts.length > 0 && (
+                              <Button type="button" className="btn-outline-token" onClick={() => setInitialProducts([])}>Reset</Button>
+                            )}
                           </div>
-                          {initialProducts.length > 0 && (
-                            <table className="table">
-                              <thead>
-                                <tr>
-                                  <th>Product</th>
-                                  <th>Qty</th>
-                                  <th>Price</th>
-                                  <th>Bin</th>
-                                  <th></th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {initialProducts.map((p, idx) => (
-                                  <tr key={`${p.product_id}-${idx}`}>
-                                    <td>{allProducts.find(ap => ap.id === p.product_id)?.name || p.product_id}</td>
-                                    <td>{p.available_qty}</td>
-                                    <td>{p.price}</td>
-                                    <td>{p.bin_code || '-'}</td>
-                                    <td className="text-right">
-                                      <Button variant="destructive" onClick={() => setInitialProducts(prev => prev.filter((_, i) => i !== idx))}>Remove</Button>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          )}
+                          <small className="muted">Cloning copies the product list. Quantities are reset to 0. Bin codes are not copied.</small>
                         </div>
+                      </div>
+
+                      <div className="nested-card" style={{ marginTop: 12 }}>
+                        <h5>Initial Products (optional)</h5>
+                        <div className="inline-form" style={{ marginBottom: 8 }}>
+                          <select value={initialNewProduct.product_id} onChange={(e) => setInitialNewProduct(p => ({ ...p, product_id: e.target.value }))}>
+                            <option value="">Select product</option>
+                            {allProducts.map(p => (
+                              <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                          </select>
+                          <input type="number" placeholder="Qty" value={initialNewProduct.available_qty} onChange={(e) => setInitialNewProduct(p => ({ ...p, available_qty: Number(e.target.value) }))} />
+                          <input type="number" step="0.01" placeholder="Price" value={initialNewProduct.price} onChange={(e) => setInitialNewProduct(p => ({ ...p, price: Number(e.target.value) }))} />
+                          <input type="text" placeholder="Bin code" value={initialNewProduct.bin_code || ''} onChange={(e) => setInitialNewProduct(p => ({ ...p, bin_code: e.target.value }))} />
+                          <Button className="btn-primary-token" onClick={() => {
+                            if (!initialNewProduct.product_id) { notify.error('Select a product'); return; }
+                            setInitialProducts(prev => [...prev, initialNewProduct]);
+                            setInitialNewProduct({ product_id: '', available_qty: 0, price: 0 });
+                          }}><PlusCircle className="icon" /> Add</Button>
+                        </div>
+                        {initialProducts.length > 0 && (
+                          <table className="table">
+                            <thead>
+                              <tr>
+                                <th>Product</th>
+                                <th>Qty</th>
+                                <th>Price</th>
+                                <th>Bin</th>
+                                <th></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {initialProducts.map((p, idx) => (
+                                <tr key={`${p.product_id}-${idx}`}>
+                                  <td>{allProducts.find(ap => ap.id === p.product_id)?.name || p.product_id}</td>
+                                  <td>{p.available_qty}</td>
+                                  <td>{p.price}</td>
+                                  <td>{p.bin_code || '-'}</td>
+                                  <td className="text-right">
+                                    <Button size="icon" variant="destructive" title="Remove" onClick={() => setInitialProducts(prev => prev.filter((_, i) => i !== idx))}>
+                                      <Trash2 size={16} />
+                                    </Button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
 
                         <div className="modal-footer">
                           <Button className="btn-outline-token" onClick={() => setCreateStoreOpen(false)}>Cancel</Button>
                           <Button className="btn-primary-token" onClick={handleCreateStore}>Create Store</Button>
                         </div>
                       </div>
-                    )}
+                    </div>
+                  )}
 
-                    {stores.length === 0 && !createStoreOpen ? (
-                      <div className="empty-state">
-                        <h2>No stores yet</h2>
-                        <p>Create your first store and start mapping products.</p>
-                        <Button className="btn-primary-token" onClick={() => setCreateStoreOpen(true)}>
-                          <PlusCircle className="icon" /> Add Store
-                        </Button>
-                      </div>
-                    ) : (
-                      <table className="table">
-                        <thead>
-                          <tr>
-                            <th>Name</th>
-                            <th>Status</th>
-                            <th className="text-right">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredStores.map((s) => (
-                            <React.Fragment key={s.id}>
+                  {stores.length === 0 && !createStoreOpen ? (
+                    <div className="empty-state">
+                      <h2>No stores yet</h2>
+                      <p>Create your first store and start mapping products.</p>
+                      <Button className="btn-primary-token" onClick={() => setCreateStoreOpen(true)}>
+                        <PlusCircle className="icon" /> Add Store
+                      </Button>
+                    </div>
+                  ) : (
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Status</th>
+                          <th className="text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pagedStores.map((s) => (
+                          <React.Fragment key={s.id}>
+                            <tr>
+                              <td>{s.store_name}</td>
+                              <td>{s.store_status}</td>
+                              <td className="text-right">
+                                <div className="row-actions" style={{display:'inline-flex',gap:10}}>
+                                  <button type="button" className="action-link primary" onClick={() => handleToggleStoreExpand(s.id)}>
+                                    <Package size={16}/> Products
+                                  </button>
+                                  <button type="button" className="action-link danger" onClick={() => handleDeleteStore(s.id)}>
+                                    <Trash2 size={16}/> Delete
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                            {expandedStoreId === s.id && (
                               <tr>
-                                <td>{s.store_name}</td>
-                                <td>{s.store_status}</td>
-                                <td className="text-right">
-                                  <div className="row-actions">
-                                    <Button className="btn-outline-token" onClick={() => handleToggleStoreExpand(s.id)}>Products</Button>
-                                    <Button variant="destructive" onClick={() => handleDeleteStore(s.id)}>Delete</Button>
-                                  </div>
+                                <td colSpan={3}>
+                                  <TableCard variant="inbound" title={`Products in ${s.store_name}`}>
+                                    <div className="inline-form" style={{ marginBottom: 8 }}>
+                                      <select value={newStoreProduct.product_id} onChange={(e) => setNewStoreProduct(p => ({ ...p, product_id: e.target.value }))}>
+                                        <option value="">Select product</option>
+                                        {allProducts.map(p => (
+                                          <option key={p.id} value={p.id}>{p.name}</option>
+                                        ))}
+                                      </select>
+                                      <input type="number" placeholder="Qty" value={newStoreProduct.available_qty} onChange={(e) => setNewStoreProduct(p => ({ ...p, available_qty: Number(e.target.value) }))} />
+                                      <input type="number" step="0.01" placeholder="Price" value={newStoreProduct.price} onChange={(e) => setNewStoreProduct(p => ({ ...p, price: Number(e.target.value) }))} />
+                                      <input type="text" placeholder="Bin code" value={newStoreProduct.bin_code || ''} onChange={(e) => setNewStoreProduct(p => ({ ...p, bin_code: e.target.value }))} />
+                                      <Button className="btn-primary-token" onClick={() => handleAddProductToStore(s.id)}><PlusCircle className="icon" /> Add</Button>
+                                    </div>
+                                    <table className="table">
+                                      <thead>
+                                        <tr>
+                                          <th>Product</th>
+                                          <th>Qty</th>
+                                          <th>Price</th>
+                                          <th>Bin</th>
+                                          <th></th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {(storeProducts[s.id] || []).map((sp: storeService.StoreProductDTO) => (
+                                          <tr key={sp.id}>
+                                            <td>{allProducts.find(p => p.id === sp.product_id)?.name || sp.product_id}</td>
+                                            <td>{sp.available_qty}</td>
+                                            <td>{sp.price}</td>
+                                            <td>{sp.bin_code || '-'}</td>
+                                            <td className="text-right">
+                                              <button type="button" className="icon-btn-plain icon-danger" title="Remove" onClick={() => handleDeleteStoreProduct(s.id, sp.id)}>
+                                                <Trash2 size={16} />
+                                              </button>
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </TableCard>
                                 </td>
                               </tr>
-                              {expandedStoreId === s.id && (
-                                <tr>
-                                  <td colSpan={3}>
-                                    <div className="nested-card">
-                                      <h5>Products in {s.store_name}</h5>
-                                      <div className="inline-form" style={{ marginBottom: 8 }}>
-                                        <select value={newStoreProduct.product_id} onChange={(e) => setNewStoreProduct(p => ({ ...p, product_id: e.target.value }))}>
-                                          <option value="">Select product</option>
-                                          {allProducts.map(p => (
-                                            <option key={p.id} value={p.id}>{p.name}</option>
-                                          ))}
-                                        </select>
-                                        <input type="number" placeholder="Qty" value={newStoreProduct.available_qty} onChange={(e) => setNewStoreProduct(p => ({ ...p, available_qty: Number(e.target.value) }))} />
-                                        <input type="number" step="0.01" placeholder="Price" value={newStoreProduct.price} onChange={(e) => setNewStoreProduct(p => ({ ...p, price: Number(e.target.value) }))} />
-                                        <input type="text" placeholder="Bin code" value={newStoreProduct.bin_code || ''} onChange={(e) => setNewStoreProduct(p => ({ ...p, bin_code: e.target.value }))} />
-                                        <Button className="btn-primary-token" onClick={() => handleAddProductToStore(s.id)}><PlusCircle className="icon" /> Add</Button>
-                                      </div>
-                                      <table className="table">
-                                        <thead>
-                                          <tr>
-                                            <th>Product</th>
-                                            <th>Qty</th>
-                                            <th>Price</th>
-                                            <th>Bin</th>
-                                            <th></th>
-                                          </tr>
-                                        </thead>
-                                        <tbody>
-                                          {(storeProducts[s.id] || []).map((sp: storeService.StoreProductDTO) => (
-                                            <tr key={sp.id}>
-                                              <td>{allProducts.find(p => p.id === sp.product_id)?.name || sp.product_id}</td>
-                                              <td>{sp.available_qty}</td>
-                                              <td>{sp.price}</td>
-                                              <td>{sp.bin_code || '-'}</td>
-                                              <td className="text-right">
-                                                <Button variant="destructive" onClick={() => handleDeleteStoreProduct(s.id, sp.id)}>Remove</Button>
-                                              </td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  </td>
-                                </tr>
-                              )}
-                            </React.Fragment>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
 
-                    <AnimatePresence>
-                      {isMapOpen && (
-                        <LocationPicker
-                          onClose={() => setIsMapOpen(false)}
-                          onLocationSelect={(lat, lng) => {
-                            setNewStore(s => ({ ...s, latitude: lat, longitude: lng }));
-                            toast.success('Location selected from map');
-                            setIsMapOpen(false);
-                          }}
-                          initialPosition={[newStore.latitude || 51.505, newStore.longitude || -0.09]}
-                        />
-                      )}
-                    </AnimatePresence>
-                  </>
-                )}
-              </div>
-            </div>
+                  <AnimatePresence>
+                    {isMapOpen && (
+                      <LocationPicker
+                        onClose={() => setIsMapOpen(false)}
+                        onLocationSelect={(lat, lng) => {
+                          setNewStore(s => ({ ...s, latitude: lat, longitude: lng }));
+                          notify.success('Location selected from map');
+                          setIsMapOpen(false);
+                        }}
+                        initialPosition={[newStore.latitude || 51.505, newStore.longitude || -0.09]}
+                      />
+                    )}
+                  </AnimatePresence>
+                </>
+              )}
+            </TableCard>
           </div>
         )}
 
         {activeTab === 'products' && (
           <div className="tab-panel">
-            <div className="card">
-              <div className="card-header"><h4 className="card-title">Products</h4></div>
-              <div className="card-content">
-                {createProductOpen && (
-                  <div className="nested-card" style={{ marginBottom: 12 }}>
-                    <h5>New Product</h5>
-                    <div className="form-grid">
+            <TableCard
+              variant="inbound"
+              title="Products"
+              search={<input className="filter-input" placeholder="Filter products…" value={filterText} onChange={(e)=>setFilterText(e.target.value)} />}
+              actions={<Button className="btn-primary-token" onClick={()=>setCreateProductOpen(true)}><PlusCircle className="icon"/> Add Product</Button>}
+              footer={
+                <>
+                  <span style={{fontSize:12,color:'var(--color-text-dim)'}}>Total products: {filteredProducts.length}</span>
+                  <div style={{display:'inline-flex',gap:6,alignItems:'center'}}>
+                    <button type="button" className="pager-btn" title="Previous" disabled={productPage<=1} onClick={()=>setProductPage(p=>Math.max(1,p-1))}><ChevronLeft size={16}/></button>
+                    <span style={{fontSize:12}}>Page {productPage} / {productPageCount}</span>
+                    <button type="button" className="pager-btn" title="Next" disabled={productPage>=productPageCount} onClick={()=>setProductPage(p=>Math.min(productPageCount,p+1))}><ChevronRight size={16}/></button>
+                  </div>
+                </>
+              }
+            >
+              {createProductOpen && (
+                <div className="nested-card" style={{ marginBottom: 12 }}>
+                  <h5>New Product</h5>
+                  <div className="form-grid">
                       <div className="form-group">
                         <label>Name</label>
                         <input value={newProduct.name} onChange={e => setNewProduct(p => ({ ...p, name: e.target.value }))} placeholder="e.g., Apple iPhone Case" />
@@ -615,36 +631,46 @@ const VendorDetails: React.FC<VendorDetailsProps> = ({ vendor, open, onClose }) 
                     </div>
                   </div>
                 ) : (
-                  <div className="nested-card">
-                    <table className="table">
-                      <thead><tr><th>Name</th><th>SKU</th><th>Price</th><th className="text-right">Actions</th></tr></thead>
-                      <tbody>
-                        {filteredProducts.map(p => (
-                          <tr key={p.id}>
-                            <td>{editingProductId === p.id ? (<input value={editProduct.name ?? ''} onChange={e => setEditProduct(ep => ({ ...ep, name: e.target.value }))} />) : p.name}</td>
-                            <td>{editingProductId === p.id ? (<input value={editProduct.sku ?? ''} onChange={e => setEditProduct(ep => ({ ...ep, sku: e.target.value }))} />) : p.sku}</td>
-                            <td>{editingProductId === p.id ? (<input type="number" step="0.01" value={editProduct.price ?? 0} onChange={e => setEditProduct(ep => ({ ...ep, price: Number(e.target.value) }))} />) : p.price}</td>
-                            <td className="text-right">
-                              {editingProductId === p.id ? (
-                                <div className="row-actions">
-                                  <Button className="btn-outline-token" onClick={saveEditProduct}><Save size={14} /> Save</Button>
-                                  <Button variant="destructive" onClick={cancelEditProduct}>Cancel</Button>
-                                </div>
-                              ) : (
-                                <div className="row-actions">
-                                  <Button className="btn-outline-token" onClick={() => startEditProduct(p)}><Edit size={14} /> Edit</Button>
-                                  <Button variant="destructive" onClick={() => deleteProduct(p.id)}><Trash2 size={14} /> Delete</Button>
-                                </div>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <table className="table">
+                    <thead><tr><th>Product</th><th>SKU</th><th>Price</th><th className="text-right">Actions</th></tr></thead>
+                    <tbody>
+                      {pagedProducts.map(p => (
+                        <tr key={p.id}>
+                          <td>
+                            {editingProductId === p.id ? (
+                              <input value={editProduct.name ?? ''} onChange={e => setEditProduct(ep => ({ ...ep, name: e.target.value }))} />
+                            ) : (
+                              <>
+                                {p.name}
+                                {p.sku && <span className="product-sku">[{p.sku}]</span>}
+                              </>
+                            )}
+                          </td>
+                          <td>{editingProductId === p.id ? (<input value={editProduct.sku ?? ''} onChange={e => setEditProduct(ep => ({ ...ep, sku: e.target.value }))} />) : p.sku}</td>
+                          <td>{editingProductId === p.id ? (<input type="number" step="0.01" value={editProduct.price ?? 0} onChange={e => setEditProduct(ep => ({ ...ep, price: Number(e.target.value) }))} />) : p.price}</td>
+                          <td className="text-right">
+                            {editingProductId === p.id ? (
+                              <div className="row-actions" style={{display:'inline-flex',gap:8}}>
+                                <button type="button" className="icon-btn-plain icon-success" title="Save" onClick={saveEditProduct}><Save size={16}/></button>
+                                <button type="button" className="icon-btn-plain icon-danger" title="Cancel" onClick={cancelEditProduct}><X size={16}/></button>
+                              </div>
+                            ) : (
+                              <div className="row-actions" style={{display:'inline-flex',gap:10}}>
+                                <button type="button" className="action-link success" onClick={() => startEditProduct(p)}>
+                                  <Edit size={16}/> Edit
+                                </button>
+                                <button type="button" className="action-link danger" onClick={() => deleteProduct(p.id)}>
+                                  <Trash2 size={16}/> Delete
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 )}
-              </div>
-            </div>
+            </TableCard>
           </div>
         )}
       </motion.div>

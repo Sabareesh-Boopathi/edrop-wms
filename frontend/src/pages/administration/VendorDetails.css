@@ -1,0 +1,118 @@
+@import url('../../theme/tokens.css');
+@import url('../../theme/utilities.css');
+
+/* Chip-style tabs specifically for VendorDetails modal */
+.vd-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.vd-tab-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  color: var(--color-text-subtle);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+
+.vd-tab-chip:hover,
+.vd-tab-chip:focus-visible {
+  background: color-mix(in srgb, var(--color-primary-soft) 70%, transparent);
+  color: var(--color-primary);
+  border-color: var(--color-primary-hover);
+}
+
+.vd-tab-chip.active {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  border-color: var(--color-primary-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+.vd-tabs-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+/* Match input height to chips */
+.vd-tabs-right .filter-input {
+  height: var(--control-height-md);
+}
+
+/* Plain icon buttons (no bg) with theme-based colors */
+.icon-btn-plain {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--color-text-subtle);
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+}
+
+.icon-btn-plain:hover,
+.icon-btn-plain:focus-visible {
+  background: transparent !important;
+  color: var(--color-primary);
+}
+
+.icon-btn-plain.icon-primary { color: var(--color-primary); }
+/* Use theme success/error tokens for green/red */
+.icon-btn-plain.icon-success { color: var(--color-success); }
+.icon-btn-plain.icon-danger { color: var(--color-error); }
+.icon-btn-plain.icon-muted { color: var(--color-text-muted); }
+
+.icon-btn-plain:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Footer pager icon buttons */
+.pager-btn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+  display: inline-grid;
+  place-items: center;
+  color: var(--color-primary);
+}
+.pager-btn:disabled { color: var(--color-text-muted); }
+
+/* Link-style row actions (icon + text) for clarity */
+.action-link {
+  background: transparent;
+  border: none;
+  padding: 0 4px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.action-link:hover { text-decoration: underline; }
+.action-link.success { color: var(--color-success); }
+.action-link.danger { color: var(--color-error); }
+.action-link.muted { color: var(--color-text-muted); }
+.action-link.primary { color: var(--color-primary); }
+
+/* Subtle SKU next to product name */
+.product-sku {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  margin-left: 8px;
+}

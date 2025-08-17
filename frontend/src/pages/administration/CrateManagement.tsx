@@ -8,7 +8,7 @@ import { getWarehouses } from '../../services/warehouseService';
 import { Button } from '../../components/ui/button';
 import { PlusCircle, Package, Archive, AlertTriangle, SearchX } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { toast } from 'sonner';
+import * as notify from '../../lib/notify';
 import { Crate, CrateStatus, Warehouse } from '../../types';
 import './CrateManagement.css';
 import EmptyState from '../../components/EmptyState';
@@ -28,7 +28,7 @@ const CrateManagement: React.FC = () => {
       const data = await getCrates();
       setCrates(data);
     } catch (error) {
-      toast.error('Failed to fetch crates.');
+      notify.error('Failed to fetch crates.');
     }
   };
 
@@ -37,7 +37,7 @@ const CrateManagement: React.FC = () => {
       const data = await getWarehouses();
       setWarehouses(data);
     } catch (error) {
-      toast.error('Failed to fetch warehouses.');
+      notify.error('Failed to fetch warehouses.');
     }
   };
 
@@ -51,7 +51,7 @@ const CrateManagement: React.FC = () => {
       if (editingCrate) {
         // Do not send name; it's auto-generated and read-only
         await updateCrate(editingCrate.id, { warehouse_id: data.warehouse_id, type: data.type, status: data.status });
-        toast.success('Crate updated successfully!');
+  notify.success('Crate updated successfully!');
     } else {
         const newCrates: Crate[] = [];
         for (let i = 0; i < data.count; i++) {
@@ -63,11 +63,11 @@ const CrateManagement: React.FC = () => {
         if (newCrates.length > 1) {
           setBulkCrates(newCrates);
         }
-        toast.success(`${newCrates.length} crate(s) created successfully!`);
+  notify.success(`${newCrates.length} crate(s) created successfully!`);
       }
     } catch (error: any) {
-      const msg = error?.response?.data?.detail || 'Failed to save crate.';
-      toast.error(msg);
+  const msg = (error as any)?.response?.data?.detail || 'Failed to save crate.';
+  notify.error(msg);
     } finally {
       setEditingCrate(null);
       setIsCreating(false);
@@ -86,22 +86,22 @@ const CrateManagement: React.FC = () => {
   };
 
   const handleDeleteCrate = async (id: string) => {
-    toast.error('Are you sure you want to delete this crate?', {
+  notify.show('Are you sure you want to delete this crate?', {
       action: {
         label: 'Delete',
         onClick: async () => {
           try {
             await deleteCrate(id);
             fetchCrates();
-            toast.success('Crate deleted successfully!');
+      notify.success('Crate deleted successfully!');
           } catch (error) {
-            toast.error('Failed to delete crate.');
+      notify.error('Failed to delete crate.');
           }
         },
       },
       cancel: {
         label: 'Cancel',
-        onClick: () => toast.dismiss(),
+    onClick: () => notify.dismiss(),
       },
     });
   };

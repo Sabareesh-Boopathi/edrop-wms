@@ -13,7 +13,7 @@
 
 .celebration-content {
   text-align: center;
-  color: white;
+  color: var(--color-white);
   animation: pop-in 0.5s ease-out;
 }
 
@@ -144,7 +144,7 @@
 }
 
 .gradient-text {
-  background: linear-gradient(90deg, #111827, var(--color-success-deep));
+  background: linear-gradient(90deg, var(--color-text), var(--color-success-deep));
   -webkit-text-fill-color: transparent;
           background-clip: text;
           color: transparent;
@@ -159,7 +159,7 @@
 /* CTA */
 .celebration-cta {
   background: linear-gradient(135deg, var(--color-success), #059669);
-  color: #fff;
+  color: var(--color-white);
   border: none;
   padding: 10px 16px;
   border-radius: 9999px;

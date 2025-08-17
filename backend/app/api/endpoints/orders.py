@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app import crud, models, schemas
 from app.api import deps
-
+logger = logging.getLogger("app.api.endpoints.orders")
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
