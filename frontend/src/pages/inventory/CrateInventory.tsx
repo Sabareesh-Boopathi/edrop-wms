@@ -4,6 +4,7 @@ import '../../theme/utilities.css';
 import '../inbound/Inbound.css';
 import './CrateInventory.css';
 import { getWarehouses } from '../../services/warehouseService';
+import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 import TableCard from '../../components/table/TableCard';
 import { motion } from 'framer-motion';
@@ -15,24 +16,13 @@ type WarehouseDTO = { id: string; name: string };
 type Crate = { id: string; name: string; status: string; type: string };
 type CrateItem = { crate_id: string; product_name: string; qty: number };
 
-// Mock crates and their held items (visual only)
-const MOCK_CRATES: Crate[] = [
-  { id: 'crate-001', name: 'CR-001', status: 'in_use', type: 'Standard' },
-  { id: 'crate-002', name: 'CR-002', status: 'available', type: 'Insulated' },
-  { id: 'crate-003', name: 'CR-003', status: 'in_use', type: 'Standard' },
-  { id: 'crate-004', name: 'CR-004', status: 'maintenance', type: 'Standard' },
-];
-const MOCK_CRATE_ITEMS: CrateItem[] = [
-  { crate_id: 'crate-001', product_name: 'Eco Bottle 1L', qty: 24 },
-  { crate_id: 'crate-001', product_name: 'Bamboo Straw Pack', qty: 60 },
-  { crate_id: 'crate-003', product_name: 'Canvas Tote Bag', qty: 18 },
-  { crate_id: 'crate-003', product_name: 'Solar Power Bank', qty: 6 },
-];
-
 const CrateInventory: React.FC = () => {
   const navigate = useNavigate();
   const [warehouses, setWarehouses] = useState<WarehouseDTO[]>([]);
   const [warehouseId, setWarehouseId] = useState<string>('');
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+  const mappedWarehouseId = (user?.warehouse_id ?? localStorage.getItem('AUTH_USER_WAREHOUSE_ID') ?? '') as string;
   const [crates, setCrates] = useState<Crate[]>([]);
   const [crateItems, setCrateItems] = useState<CrateItem[]>([]);
   // Pagination state
@@ -43,18 +33,19 @@ const CrateInventory: React.FC = () => {
 
   useEffect(() => {
     (async () => {
-      const ws = await getWarehouses();
+  let ws = await getWarehouses();
+  if (!isAdmin && mappedWarehouseId) ws = ws.filter((w: any) => String(w.id) === String(mappedWarehouseId));
       setWarehouses(ws);
-      if (ws.length && !warehouseId) setWarehouseId(ws[0].id);
+      if (ws.length) setWarehouseId(String(!isAdmin && mappedWarehouseId ? mappedWarehouseId : ws[0].id));
     })();
-  }, []);
+  }, [isAdmin, mappedWarehouseId]);
 
   useEffect(() => {
     if (!warehouseId) return;
     api.get(`/warehouses/${warehouseId}/crates`).then((res) => {
       const data = Array.isArray(res.data) ? res.data : [];
       setCrates(data);
-      // If backend supports items endpoint later, wire here; for now, keep empty
+      // Items API not yet available; leave empty for now
       setCrateItems([]);
       // Reset pagination when data context changes
       setPageCrates(1);
@@ -67,7 +58,7 @@ const CrateInventory: React.FC = () => {
   const heldRows = useMemo(() => {
     const rows: { crate_name: string; product_name: string; qty: number }[] = [];
     for (const c of cratesInUse) {
-      const items = (crateItems.length ? crateItems : MOCK_CRATE_ITEMS).filter((it) => it.crate_id === c.id);
+      const items = crateItems.filter((it) => it.crate_id === c.id);
       for (const it of items) rows.push({ crate_name: c.name, product_name: it.product_name, qty: it.qty });
     }
     return rows;
@@ -91,19 +82,21 @@ const CrateInventory: React.FC = () => {
           <h1>Crate Inventory</h1>
           <p>Track crates and what items are currently held in active crates.</p>
         </div>
-        <div className="form-field" style={{ maxWidth: 260 }}>
-          <label>Warehouse</label>
-          <select
-            value={warehouseId}
-            onChange={(e) => setWarehouseId(e.target.value)}
-          >
-            {warehouses.map((w) => (
-              <option key={w.id} value={w.id}>
-                {('name' in w && w.name) ? w.name : w.id}
-              </option>
-            ))}
-          </select>
-  </div>
+        {isAdmin && (
+          <div className="form-field" style={{ maxWidth: 260 }}>
+            <label>Warehouse</label>
+            <select
+              value={warehouseId}
+              onChange={(e) => setWarehouseId(e.target.value)}
+            >
+              {warehouses.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {('name' in w && w.name) ? w.name : w.id}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 3fr', gap: 'var(--space-4)' }}>

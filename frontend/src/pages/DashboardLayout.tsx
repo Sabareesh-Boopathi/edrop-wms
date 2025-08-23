@@ -65,8 +65,13 @@ const menuItems: MenuItem[] = [
     subItems: [
       { name: 'Warehouse Mgmt', path: '/administration/warehouse-management' },
       { name: 'Bay Management', path: '/administration/bay-management' },
+      // Users & Roles visible only to admins (filtered at render)
       { name: 'Users & Roles', path: '/administration/users-roles' },
       { name: 'Vendors', path: '/administration/vendors' },
+      { name: 'Communities', path: '/administration/communities' },
+      { name: 'Customers', path: '/administration/customers' },
+      { name: 'Drivers', path: '/administration/fleet/drivers' },
+      { name: 'Vehicles', path: '/administration/fleet/vehicles' },
       { name: 'Crate Management', path: '/administration/crate-management' },
       { name: 'Bin Management', path: '/administration/bin-management' },
       { name: 'System Config', path: '/administration/system-configuration' },
@@ -103,7 +108,7 @@ const DashboardLayout: React.FC = () => {
   const [unread, setUnread] = React.useState<number>(0);
   const [showNotif, setShowNotif] = React.useState(false);
   const location = useLocation();
-  const { logout, isAuthenticated } = useAuth();
+  const { logout, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const { config, formatDateTime } = useConfig();
 
@@ -159,6 +164,16 @@ const DashboardLayout: React.FC = () => {
     }
   };
 
+  const visibleMenuItems = React.useMemo(() => {
+    if (user?.role === 'OPERATOR') {
+      return menuItems.filter((m) => m.name === 'Inbound' || m.name === 'Outbound' || m.name === 'Dashboard');
+    }
+    if (user?.role === 'VIEWER') {
+      return menuItems.filter((m) => m.name !== 'Administration');
+    }
+    return menuItems;
+  }, [user?.role]);
+
   return (
     <div className={`dashboard-container ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       <nav className="dashboard-sidebar">
@@ -169,7 +184,7 @@ const DashboardLayout: React.FC = () => {
           </button>
         </div>
         <ul className="sidebar-menu">
-          {menuItems.map((item) => (
+          {visibleMenuItems.map((item) => (
             <li key={item.name} className={`${openMenu === item.name ? 'open' : ''} ${location.pathname.startsWith(item.basePath) ? 'active-parent' : ''}`}>
               {item.path ? (
                 <Link to={item.path} onClick={() => handleMenuClick(item.name)}>
@@ -183,9 +198,14 @@ const DashboardLayout: React.FC = () => {
                   {!isSidebarCollapsed && item.subItems.length > 0 && <ChevronDown className="submenu-arrow" />}
                 </a>
               )}
-              {!isSidebarCollapsed && item.subItems.length > 0 && (
+      {!isSidebarCollapsed && item.subItems.length > 0 && (
                 <ul className="submenu">
-                  {item.subItems.map((subItem) => (
+                  {item.subItems
+  // Show Users & Roles for ADMIN and MANAGER; hide for others
+  .filter((subItem) => !(subItem.path === '/administration/users-roles' && !(['ADMIN','MANAGER'].includes(user?.role || ''))))
+        .filter((subItem) => !(user?.role === 'OPERATOR' && subItem.path?.startsWith('/administration')))
+        .filter((subItem) => !(user?.role === 'VIEWER' && subItem.path?.startsWith('/administration')))
+                    .map((subItem) => (
                     <li key={subItem.name}>
                       <Link to={subItem.path} className={location.pathname === subItem.path ? 'active' : ''}>
                         {subItem.name}

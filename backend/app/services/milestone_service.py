@@ -6,6 +6,7 @@ from app.schemas.milestone import MilestoneCreate
 from app.models.milestone import MilestoneEventType, MilestoneEntityType
 from app.models.warehouse import Warehouse
 import logging
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,18 @@ def get_next_milestone(current_count: int) -> int | None:
             return value
     logger.info("No next milestone value found.")
     return None
+
+def _as_valid_uuid(value: str | None) -> uuid.UUID | None:
+    """Return a UUID if value is a valid UUID string; otherwise None.
+
+    Prevents accidental queries like WHERE id = 'None'::UUID.
+    """
+    if not value:
+        return None
+    try:
+        return uuid.UUID(str(value))
+    except Exception:
+        return None
 
 def check_and_create_milestone(
     db: Session,
@@ -42,19 +55,14 @@ def check_and_create_milestone(
     
     next_milestone_value = get_next_milestone(current_count)
 
-    # Resolve warehouse context (name) if provided
+    # Resolve warehouse context (name) if provided and valid
     wh_name: str | None = None
-    if warehouse_id:
+    wh_lookup_id = _as_valid_uuid(warehouse_id) or _as_valid_uuid(entity_id)
+    if wh_lookup_id:
         try:
-            wh = db.query(Warehouse).get(warehouse_id)
-            if wh:
-                wh_name = wh.name
-        except Exception:
-            wh_name = None
-    else:
-        # Fallback: try entity_id when it represents a warehouse (e.g., creation event)
-        try:
-            wh = db.query(Warehouse).get(entity_id)
+            # Prefer modern Session.get if available; fallback to query.get
+            wh = getattr(db, "get", None)
+            wh = wh(Warehouse, wh_lookup_id) if callable(wh) else db.query(Warehouse).get(wh_lookup_id)
             if wh:
                 wh_name = wh.name
         except Exception:

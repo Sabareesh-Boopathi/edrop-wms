@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import DispatchRouteCard from '../../components/outbound/DispatchRouteCard';
 import EmptyState from '../../components/EmptyState';
 import KpiCard from '../../components/KpiCard';
 import { Truck, Search, Loader2, TriangleAlert } from 'lucide-react';
 import '../inbound/Inbound.css';
+import './outbound.css';
 import * as notify from '../../lib/notify';
 import { fetchDispatchRoutes, assignDriver, approveDispatch, type DispatchRoute } from '../../services/outboundService';
 
@@ -15,15 +16,18 @@ const DispatchConsole: React.FC = () => {
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
-    try { setRoutes(await fetchDispatchRoutes()); } catch { notify.error('Failed to load dispatch routes'); } finally { setLoading(false); }
-  }
-  useEffect(() => {
-    let mounted = true; load();
-    const t = window.setInterval(() => { if (mounted) load(); }, 10000);
-    return () => { mounted = false; window.clearInterval(t); };
+    try {
+      const data = await fetchDispatchRoutes();
+      setRoutes(Array.isArray(data) ? data : []);
+    } catch (e: any) {
+      notify.error(e?.message || 'Failed to load dispatch routes');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+  useEffect(() => { void load(); }, [load]);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -41,18 +45,15 @@ const DispatchConsole: React.FC = () => {
   const pendingIssues = routes.filter(r => r.totes_loaded < r.totes_expected).length;
 
   const onAssignDriver = async (routeId: string) => {
-    const driver = window.prompt('Assign driver name:');
+    const driver = window.prompt('Driver name');
     if (!driver) return;
-    const vehicle = window.prompt('Vehicle number (optional):') || undefined;
-    await assignDriver(routeId, driver, vehicle);
-    notify.success('Driver assignment updated');
-    load();
+    const vehicle = window.prompt('Vehicle (optional)') || undefined;
+    try { await assignDriver(routeId, driver, vehicle); notify.success(`Assigned ${driver}`); void load(); }
+    catch (e: any) { notify.error(e?.message || 'Failed to assign'); }
   };
-
   const onDispatch = async (routeId: string) => {
-    await approveDispatch(routeId);
-    notify.info('Route dispatched');
-    load();
+    try { await approveDispatch(routeId); notify.info(`Dispatched ${routeId}`); void load(); }
+    catch (e: any) { notify.error(e?.message || 'Failed to dispatch'); }
   };
 
   return (
@@ -74,7 +75,7 @@ const DispatchConsole: React.FC = () => {
         <KpiCard icon={<TriangleAlert />} title="Issues" value={pendingIssues} variant="orange" />
       </div>
 
-      {/* Filters / Legend */}
+      {/* Filters / Search */}
       <div className="inbound-filters" style={{ alignItems:'center' }}>
         <div className="form-field" style={{ maxWidth: 320 }}>
           <label>Search</label>
@@ -90,11 +91,11 @@ const DispatchConsole: React.FC = () => {
 
       {/* Card list */}
       {paged.length === 0 && !loading ? (
-        <EmptyState icon={<Truck />} title="No routes to dispatch" message="When routes are ready, they'll show up here." actionLabel="Refresh" onAction={load} actionClassName="btn-outline-token" />
+        <EmptyState icon={<Truck />} title="No routes to dispatch" message="When routes are ready, they'll show up here." />
       ) : (
         <div style={{ display:'grid', gap:16 }}>
           {paged.map(r => (
-            <DispatchRouteCard key={r.route_id} route={r} onAssignDriver={onAssignDriver} onDispatch={onDispatch} />
+            <DispatchRouteCard key={r.route_id} route={r as any} onAssignDriver={onAssignDriver} onDispatch={onDispatch} />
           ))}
         </div>
       )}

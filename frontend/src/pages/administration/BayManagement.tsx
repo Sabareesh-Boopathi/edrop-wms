@@ -12,6 +12,8 @@ import { getWarehouses } from '../../services/warehouseService';
 import { Warehouse } from 'types';
 import BayFormModal from '../../components/BayFormModal';
 import * as notify from '../../lib/notify';
+import { useAuth } from '../../contexts/AuthContext';
+import LoadingOverlay from '../../components/LoadingOverlay';
 
 const BayManagement: React.FC = () => {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -21,16 +23,24 @@ const BayManagement: React.FC = () => {
   const [scale, setScale] = useState<'sm'|'md'|'lg'>('md');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Bay | null>(null);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+  const mappedWarehouseId = (user?.warehouse_id ?? (typeof window !== 'undefined' ? localStorage.getItem('AUTH_USER_WAREHOUSE_ID') : '') ?? '') as string;
 
   useEffect(() => {
     (async () => {
       try {
         const list = await getWarehouses();
         setWarehouses(Array.isArray(list) ? list : []);
-        if (Array.isArray(list) && list.length) setSelectedWh(list[0].id);
+        // Default selection: admin -> first warehouse; others -> mapped warehouse
+        if (!isAdmin && mappedWarehouseId) {
+          setSelectedWh(String(mappedWarehouseId));
+        } else if (Array.isArray(list) && list.length) {
+          setSelectedWh(String(list[0].id));
+        }
       } catch { /* ignore for now */ }
     })();
-  }, []);
+  }, [isAdmin, mappedWarehouseId]);
 
   const filtered = useMemo(() => bays.filter(b => (
     (!selectedWh || b.warehouse_id === selectedWh) &&
@@ -65,24 +75,20 @@ const BayManagement: React.FC = () => {
             <KpiCard icon={<Percent className="icon" />} title="Avg Utilization" value={`${kpis.utilization}%`} variant="pink" />
             <KpiCard icon={<Clock className="icon" />} title="Avg Turnaround" value={`${kpis.averageTurnaroundMin}m`} variant="indigo" />
           </>
-        ) : (
-          <div className="empty-hint">Loading KPIs…</div>
-        )}
+  ) : null}
       </div>
 
       <TableCard
         variant="inbound"
-        title={<>
-          Bays {loading && <span style={{fontSize:12, marginLeft:8}}>Loading…</span>} {error && <span style={{color:'var(--color-error)', marginLeft:8}}>{error}</span>}
-        </>}
-        warehouse={
+  title={<>Bays {error && <span style={{color:'var(--color-error)', marginLeft:8}}>{error}</span>}</>}
+        warehouse={isAdmin ? (
           <div className="form-field" style={{minWidth:220}}>
             <label>Warehouse</label>
             <select value={selectedWh} onChange={e=>setSelectedWh(e.target.value)}>
               {warehouses.map(w => <option key={w.id} value={String(w.id)}>{String(w.name)}</option>)}
             </select>
           </div>
-        }
+        ) : undefined}
         search={
           <div className="form-field" style={{maxWidth:260}}>
             <label>Search</label>
@@ -102,7 +108,9 @@ const BayManagement: React.FC = () => {
           </div>
         }
       >
-          {filtered.length === 0 ? (
+          {loading ? (
+            <LoadingOverlay label="Loading bays" />
+          ) : filtered.length === 0 ? (
             <EmptyState title="No Bays" message="Create a bay to get started." actionLabel="New Bay" onAction={()=>{ setEditing(null); setModalOpen(true); }} />
           ) : (
             <>

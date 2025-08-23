@@ -26,7 +26,6 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationships
-    customer = relationship("Customer", back_populates="user", uselist=False, lazy='joined')
+    # Relationships - removed customer relationship since customers are now independent
     warehouses = relationship("Warehouse", back_populates="manager", cascade="all, delete-orphan", foreign_keys="Warehouse.manager_id", lazy='dynamic')
     milestones = relationship("Milestone", back_populates="user", lazy='dynamic')

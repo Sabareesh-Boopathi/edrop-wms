@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     SUPERUSER_STATUS: str = "ACTIVE"
     SUPERUSER_PHONE: str | None = None
     SUPERUSER_ADDRESS: str | None = None
+    SUPERUSER_WAREHOUSE_ID: str | None = None
 
     @root_validator(pre=False, skip_on_failure=True)
     def assemble_db_urls(cls, v: Dict[str, Any]) -> Dict[str, Any]:

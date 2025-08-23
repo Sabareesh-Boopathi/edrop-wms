@@ -101,7 +101,7 @@ const TableCard: React.FC<TableCardProps> = ({
         )}
         <div className="inbound-card-content">
           {filters ? (
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
+            <div className="inbound-filters-row" style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
               <span className="filters-chip" aria-hidden style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <span style={{ fontSize: 12 }}>🔎</span>
                 Filter by

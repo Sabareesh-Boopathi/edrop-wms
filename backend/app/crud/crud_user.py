@@ -18,15 +18,38 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
     def create(self, db: Session, *, obj_in: UserCreate) -> User:
         try:
+            # Normalize role/status to plain uppercase strings (avoid Enum instances hitting DB)
+            role_value = None
+            if obj_in.role is not None:
+                role_value = (obj_in.role.value if hasattr(obj_in.role, "value") else str(obj_in.role)).upper()
+            status_value = None
+            if obj_in.status is not None:
+                status_value = (obj_in.status.value if hasattr(obj_in.status, "value") else str(obj_in.status)).upper()
+
+            # Prepare kwargs; only include role/status if present to allow DB defaults otherwise
+            # Validate warehouse_id if provided (avoid FK violation on insert)
+            valid_warehouse_id = obj_in.warehouse_id
+            if valid_warehouse_id:
+                try:
+                    exists = db.query(Warehouse).get(valid_warehouse_id)
+                    if not exists:
+                        valid_warehouse_id = None
+                except Exception:
+                    valid_warehouse_id = None
+
+            kwargs: dict[str, object] = {
+                "email": obj_in.email,
+                "name": obj_in.name,
+                "hashed_password": get_password_hash(obj_in.password),
+                "warehouse_id": valid_warehouse_id,
+            }
+            if role_value:
+                kwargs["role"] = role_value
+            if status_value:
+                kwargs["status"] = status_value
+
             # Create the user
-            db_obj = User(
-                email=obj_in.email,
-                name=obj_in.name,
-                hashed_password=get_password_hash(obj_in.password),
-                role=obj_in.role.upper(),  # Normalize to uppercase
-                status=obj_in.status,  # Use status directly
-                warehouse_id=obj_in.warehouse_id  # Assign warehouse_id if provided
-            )
+            db_obj = User(**kwargs)
             db.add(db_obj)
 
             # Check for system-level user count milestones
@@ -62,10 +85,9 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             # Commit the transaction only after all operations are successful
             db.commit()
             db.refresh(db_obj)
-            return {
-                **db_obj.__dict__,
-                "warehouse_id": str(db_obj.warehouse_id) if db_obj.warehouse_id else None
-            }
+            # Return the ORM instance; Pydantic model has from_attributes=True
+            # so it will serialize UUIDs and nullable fields correctly.
+            return db_obj
         except SQLAlchemyError as e:
             db.rollback()
             raise e
@@ -87,17 +109,23 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             del update_data["password"]
             update_data["hashed_password"] = hashed_password
 
-        if "role" in update_data:
-            update_data["role"] = update_data["role"].upper()  # Normalize to uppercase
+        if "role" in update_data and update_data["role"] is not None:
+            value = update_data["role"]
+            if hasattr(value, "value"):
+                value = value.value
+            update_data["role"] = str(value).upper()
+
+        if "status" in update_data and update_data["status"] is not None:
+            value = update_data["status"]
+            if hasattr(value, "value"):
+                value = value.value
+            update_data["status"] = str(value).upper()
 
         if "warehouse_id" in update_data:
             db_obj.warehouse_id = update_data["warehouse_id"]
 
         updated_obj = super().update(db, db_obj=db_obj, obj_in=update_data)
-        return {
-            **updated_obj.__dict__,
-            "warehouse_id": str(updated_obj.warehouse_id) if updated_obj.warehouse_id else None
-        }
+        return updated_obj
 
     def authenticate_and_validate(self, db: Session, *, email: str, password: str) -> User:
         """Authenticate the user and validate their status."""

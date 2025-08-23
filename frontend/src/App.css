@@ -1,5 +1,6 @@
 @import url('./theme/tokens.css');
 @import url('./theme/utilities.css');
+@import url('./theme/sonner.css');
 
 .App { text-align: center; background-color: var(--color-bg); }
 

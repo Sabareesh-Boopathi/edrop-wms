@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useConfig } from '../contexts/ConfigContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface RackFormModalProps {
   warehouseId: string;
@@ -31,6 +32,9 @@ const rackSchema = z.object({
 type RackFormValues = z.infer<typeof rackSchema>;
 
 const RackFormModal: React.FC<RackFormModalProps> = ({ warehouseId, allWarehouses, rack, onCancel, onSave }) => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+  const mappedWarehouseId = (user?.warehouse_id ?? (typeof window !== 'undefined' ? localStorage.getItem('AUTH_USER_WAREHOUSE_ID') : '') ?? '') as string;
   const { config } = useConfig();
   const maxStacks = Number(config.maxStackHeight || 0);
   const maxBinsPer = Number(config.maxBinsPerRack || 0);
@@ -39,7 +43,7 @@ const RackFormModal: React.FC<RackFormModalProps> = ({ warehouseId, allWarehouse
     resolver: zodResolver(rackSchema),
     defaultValues: {
       name: rack?.name ? String(rack.name) : 'Auto-generated',
-      warehouse_id: rack?.warehouse_id ? String(rack.warehouse_id) : String(warehouseId || ''),
+      warehouse_id: rack?.warehouse_id ? String(rack.warehouse_id) : String((isAdmin ? (warehouseId || '') : (mappedWarehouseId || warehouseId || ''))),
       stacks: rack?.stacks ? Number(rack.stacks) : 1,
       bins_per_stack: rack?.bins_per_stack ? Number(rack.bins_per_stack) : 1,
       description: rack?.description ? String(rack.description) : '',
@@ -146,12 +150,13 @@ const RackFormModal: React.FC<RackFormModalProps> = ({ warehouseId, allWarehouse
             <div className="form-grid">
               <div className="form-group">
                 <label htmlFor="warehouse_id">Warehouse</label>
-                <select id="warehouse_id" className={errors.warehouse_id ? 'error' : ''} {...register('warehouse_id')}>
+                <select id="warehouse_id" className={errors.warehouse_id ? 'error' : ''} {...register('warehouse_id')} disabled={!isAdmin}>
                   {!warehouseId && !rack?.warehouse_id && <option value="" disabled>Select a warehouse</option>}
                   {allWarehouses.map((w) => (
                     <option key={w.id} value={String(w.id)}>{String(w.name ?? '')}</option>
                   ))}
                 </select>
+                {!isAdmin && <p className="hint" style={{fontSize:12,color:'var(--color-text-muted)'}}>Only admins can change warehouse.</p>}
                 {errors.warehouse_id?.message && <p className="error-message">{String(errors.warehouse_id.message)}</p>}
               </div>
 

@@ -12,6 +12,7 @@ import { getSystemConfig, getWarehouseConfig } from '../../services/configServic
 import { StatusChip } from '../../components/inbound/StatusChip';
 import DeltaTime from '../../components/inbound/DeltaTime';
 import * as notify from '../../lib/notify';
+import LoadingOverlay from '../../components/LoadingOverlay';
 
 // QC should start post-unloading at the bay
 const qcStatuses: ReceiptStatus[] = ['MOVED_TO_BAY'];
@@ -20,7 +21,7 @@ const QualityCheck: React.FC = () => {
   const { receipts, kpis, loading, error, reload, setFilter, filter } = useInboundData();
   const [search, setSearch] = useState(filter.search || '');
   const [show, setShow] = useState<Receipt | null>(null);
-  const { warehouses, warehouseId, setWarehouseId } = useWarehouseSelection();
+  const { warehouses, warehouseId, setWarehouseId, allowSelection } = useWarehouseSelection();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
@@ -44,16 +45,26 @@ const QualityCheck: React.FC = () => {
           <h1>Quality Check</h1>
           <p>Inspect and verify incoming goods; flag damages/missing and complete QC.</p>
         </div>
-        <div className="inline-actions">
-          <button
-            className="icon-btn"
-            title={loading ? 'Refreshing…' : 'Refresh'}
-            aria-label="Refresh"
-            onClick={reload}
-            disabled={loading}
-          >
-            <RotateCw size={18} />
-          </button>
+        <div style={{display:'flex', gap:12, alignItems:'flex-end', flexWrap:'wrap'}}>
+          {allowSelection && (
+            <div className="form-field" style={{minWidth:220}}>
+              <label>Warehouse</label>
+              <select value={warehouseId} onChange={e=>setWarehouseId(e.target.value)}>
+                {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+              </select>
+            </div>
+          )}
+          <div className="inline-actions">
+            <button
+              className="icon-btn"
+              title={loading ? 'Refreshing…' : 'Refresh'}
+              aria-label="Refresh"
+              onClick={reload}
+              disabled={loading}
+            >
+              <RotateCw size={18} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -67,26 +78,19 @@ const QualityCheck: React.FC = () => {
             <KpiCard icon={<Clock className="icon" />} title="Pending" value={kpis.pending} variant="pink" />
           </>
         ) : (
-          <div className="empty-hint">Loading KPIs…</div>
+          <div className="empty-hint" style={{gridColumn:'1 / -1'}}>
+            <LoadingOverlay label="Loading KPIs" />
+          </div>
         )}
       </div>
 
-      <TableCard
+  <TableCard
         variant="inbound"
         title={(
           <>
             Receipts for QC
-            {loading && <span style={{fontSize:12, marginLeft:8}}>Loading…</span>}
             {error && <span style={{color:'var(--color-error)', marginLeft:8}}>{error}</span>}
           </>
-        )}
-        warehouse={(
-          <div className="form-field" style={{maxWidth:240}}>
-            <label>Warehouse</label>
-            <select value={warehouseId} onChange={e=>setWarehouseId(e.target.value)}>
-              {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-            </select>
-          </div>
         )}
         search={(
           <div className="form-field" style={{maxWidth:320}}>
@@ -137,13 +141,16 @@ const QualityCheck: React.FC = () => {
           </>
         ) : undefined}
       >
+        {loading && (
+          <LoadingOverlay label="Loading receipts" />
+        )}
         {qcList.length === 0 && !loading ? (
           <EmptyState title="Nothing to QC" message="QC starts once unloading is completed and receipt is moved to bay." />
         ) : (
           <table className="inbound-table">
             <thead>
               <tr>
-                <th>ID</th>
+                <th>Receipt</th>
                 <th>Vendor</th>
                 <th>Status</th>
                 <th>Lines</th>
@@ -158,7 +165,7 @@ const QualityCheck: React.FC = () => {
                 const excLines = r.lines.filter(l => (l.damaged||0) > 0 || (l.missing||0) > 0).length;
                 return (
                   <tr key={r.id} className="appearing">
-                    <td>{r.id}</td>
+                    <td>{r.code || r.id}</td>
                     <td>{r.vendor_name} ({r.vendor_type})</td>
                     <td><StatusChip status={r.status} /></td>
                     <td>{r.lines.length}</td>
@@ -314,23 +321,23 @@ const QcModal: React.FC<{ receipt: Receipt; onClose: ()=>void; onSaved: ()=>void
                       <td>{l.product_name || l.customer_name || l.product_sku}</td>
                       <td>{planned}</td>
                       <td>
-                        <input type="number" min={0} style={{width:64}} value={received} onChange={e=>setLine(l.id, { received_qty: Math.max(0, Number(e.target.value||0)) })} />
+                        <input className="line-input" type="number" min={0} style={{width:64}} value={received} onChange={e=>setLine(l.id, { received_qty: Math.max(0, Number(e.target.value||0)) })} />
                       </td>
                       <td style={{color: diff<0 ? 'var(--color-error)' : diff>0 ? 'var(--color-warning)' : 'var(--color-text-soft)'}}>
                         {diff<0 ? `${Math.abs(diff)} short` : diff>0 ? `${diff} over` : '—'}
                       </td>
                       <td>
-                        <input type="number" min={0} style={{width:64}} value={l.damaged||0} onChange={e=>setLine(l.id, { damaged: Math.max(0, Number(e.target.value||0)) })} />
+                        <input className="line-input" type="number" min={0} style={{width:64}} value={l.damaged||0} onChange={e=>setLine(l.id, { damaged: Math.max(0, Number(e.target.value||0)) })} />
                       </td>
                       <td>
-                        <select value={l.damaged_origin||''} onChange={e=>setLine(l.id,{ damaged_origin: e.target.value as any })}>
+                        <select className="line-input" value={l.damaged_origin||''} onChange={e=>setLine(l.id,{ damaged_origin: e.target.value as any })}>
                           <option value="">Select</option>
                           <option value="UNLOADING">Unloading</option>
                           <option value="WAREHOUSE">Warehouse</option>
                         </select>
                       </td>
                       <td>
-                        <input placeholder="Notes" value={l.notes||''} onChange={e=>setLine(l.id, { notes: e.target.value })} />
+                        <input className="line-input" placeholder="Notes" value={l.notes||''} onChange={e=>setLine(l.id, { notes: e.target.value })} />
                       </td>
                       <td>
                         <input type="checkbox" checked={!!l.ack_diff} onChange={e=>setLine(l.id, { ack_diff: e.target.checked })} title="Acknowledge difference" />

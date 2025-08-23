@@ -21,6 +21,10 @@ import ReactLazy = React.lazy;
 const WarehouseManagement = ReactLazy(() => import('./pages/administration/WarehouseManagement'));
 const UsersAndRoles = ReactLazy(() => import('./pages/administration/UsersAndRoles'));
 const Vendors = ReactLazy(() => import('./pages/administration/Vendors'));
+const Communities = ReactLazy(() => import('./pages/administration/Communities'));
+const Customers = ReactLazy(() => import('./pages/administration/Customers'));
+const Drivers = ReactLazy(() => import('./pages/administration/fleet/Drivers'));
+const Vehicles = ReactLazy(() => import('./pages/administration/fleet/Vehicles'));
 const CrateManagement = ReactLazy(() => import('./pages/administration/CrateManagement'));
 const BinManagement = ReactLazy(() => import('./pages/administration/BinManagement'));
 const BayManagement = ReactLazy(() => import('./pages/administration/BayManagement'));
@@ -37,6 +41,8 @@ import { Toaster } from 'components/ui/sonner';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { ConfigProvider } from './contexts/ConfigContext';
+import { useAuth } from './contexts/AuthContext';
+import LoadingOverlay from './components/LoadingOverlay';
 
 function App() {
   return (
@@ -64,7 +70,7 @@ function App() {
 }
 
 const SuspenseWrap: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <React.Suspense fallback={<div style={{padding:40}}>Loading...</div>}>
+  <React.Suspense fallback={<LoadingOverlay label="Loading module" /> }>
     {children}
   </React.Suspense>
 );
@@ -94,8 +100,17 @@ const DashboardRoutes = () => (
 
   <Route path="administration/warehouse-management" element={<SuspenseWrap><WarehouseManagement /></SuspenseWrap>} />
   <Route path="administration/bay-management" element={<SuspenseWrap><BayManagement /></SuspenseWrap>} />
-  <Route path="administration/users-roles" element={<SuspenseWrap><UsersAndRoles /></SuspenseWrap>} />
+  <Route
+    path="administration/users-roles"
+    element={<AdminOrManagerOnly>
+      <SuspenseWrap><UsersAndRoles /></SuspenseWrap>
+    </AdminOrManagerOnly>}
+  />
   <Route path="administration/vendors" element={<SuspenseWrap><Vendors /></SuspenseWrap>} />
+  <Route path="administration/communities" element={<SuspenseWrap><Communities /></SuspenseWrap>} />
+  <Route path="administration/customers" element={<SuspenseWrap><Customers /></SuspenseWrap>} />
+  <Route path="administration/fleet/drivers" element={<SuspenseWrap><Drivers /></SuspenseWrap>} />
+  <Route path="administration/fleet/vehicles" element={<SuspenseWrap><Vehicles /></SuspenseWrap>} />
   <Route path="administration/crate-management" element={<SuspenseWrap><CrateManagement /></SuspenseWrap>} />
   <Route path="administration/bin-management" element={<SuspenseWrap><BinManagement /></SuspenseWrap>} />
   <Route path="administration/system-configuration" element={<SuspenseWrap><SystemConfiguration /></SuspenseWrap>} />
@@ -112,5 +127,13 @@ const DashboardRoutes = () => (
     </Route>
   </Routes>
 );
+
+const AdminOrManagerOnly: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  if (!user || (user.role !== 'ADMIN' && user.role !== 'MANAGER')) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <>{children}</>;
+};
 
 export default App;

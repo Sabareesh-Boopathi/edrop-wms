@@ -8,6 +8,7 @@ import './WarehouseManagement.css';
 import './CrateManagement.css';
 import './SystemConfiguration.css';
 import { useConfig } from '../../contexts/ConfigContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Small reusable field components
 function Field({ label, tooltip, children }: { label: string; tooltip?: string; children: React.ReactNode }) {
@@ -39,6 +40,9 @@ const SystemConfiguration: React.FC = () => {
   const [warehouses, setWarehouses] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('');
   const { reload: reloadGlobalConfig } = useConfig();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+  const mappedWarehouseId = (user?.warehouse_id ?? (typeof window !== 'undefined' ? localStorage.getItem('AUTH_USER_WAREHOUSE_ID') : '') ?? '') as string;
 
   // Global config state
   const [systemConfig, setSystemConfig] = useState<configService.SystemConfig>({
@@ -108,12 +112,16 @@ const SystemConfiguration: React.FC = () => {
         const ws = await warehouseService.getWarehouses();
         const mapped = (ws || []).map((w: any) => ({ id: w.id, name: w.name || w.store_name || w.warehouse_name || 'Warehouse' }));
         setWarehouses(mapped);
-        if (mapped[0]?.id) setSelectedWarehouseId(mapped[0].id);
+        if (!isAdmin && mappedWarehouseId) {
+          setSelectedWarehouseId(String(mappedWarehouseId));
+        } else if (mapped[0]?.id) {
+          setSelectedWarehouseId(mapped[0].id);
+        }
       } catch (err: any) {
   notify.error(getErrorMessage(err));
       }
     })();
-  }, []);
+  }, [isAdmin, mappedWarehouseId]);
 
   // Load selected warehouse config
   useEffect(() => {
@@ -367,11 +375,15 @@ const SystemConfiguration: React.FC = () => {
       <div className="card-content">
         <div className="form-grid edrop-form-grid">
           <Field label="Warehouse" tooltip="Select warehouse to edit settings">
-            <select value={selectedWarehouseId} onChange={(e) => setSelectedWarehouseId(e.target.value)}>
-              {warehouses.map(w => (
-                <option key={w.id} value={w.id}>{w.name}</option>
-              ))}
-            </select>
+            {isAdmin ? (
+              <select value={selectedWarehouseId} onChange={(e) => setSelectedWarehouseId(e.target.value)}>
+                {warehouses.map(w => (
+                  <option key={w.id} value={w.id}>{w.name}</option>
+                ))}
+              </select>
+            ) : (
+              <input type="text" value={warehouses.find(w=>w.id===selectedWarehouseId)?.name || ''} readOnly />
+            )}
           </Field>
         </div>
 

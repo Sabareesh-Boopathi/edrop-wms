@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Warehouse } from 'types';
 import { Bay, BayType, VehicleSize, VehicleType } from '../types/bay';
+import { useAuth } from '../contexts/AuthContext';
 
 interface BayFormModalProps {
   warehouses: Warehouse[];
@@ -30,12 +31,15 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 const BayFormModal: React.FC<BayFormModalProps> = ({ warehouses, initial, onCancel, onSave }) => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+  const mappedWarehouseId = (user?.warehouse_id ?? (typeof window !== 'undefined' ? localStorage.getItem('AUTH_USER_WAREHOUSE_ID') : '') ?? '') as string;
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       id: initial?.id,
       name: initial?.name || '',
-      warehouse_id: initial?.warehouse_id || (warehouses[0]?.id || ''),
+      warehouse_id: initial?.warehouse_id || (isAdmin ? String(warehouses[0]?.id || '') : String(mappedWarehouseId || warehouses[0]?.id || '')),
       type: initial?.type || 'GOODS_IN',
       dynamicMode: initial?.dynamicMode || 'GOODS_IN',
       capacity: initial?.capacity || 1,
@@ -87,9 +91,10 @@ const BayFormModal: React.FC<BayFormModalProps> = ({ warehouses, initial, onCanc
             <div className="form-grid">
               <div className="form-group">
                 <label>Warehouse</label>
-                <select {...register('warehouse_id')}>
+                <select {...register('warehouse_id')} disabled={!isAdmin}>
                   {warehouses.map(w => <option key={w.id} value={String(w.id)}>{String(w.name)}</option>)}
                 </select>
+                {!isAdmin && <p className="hint" style={{fontSize:12,color:'var(--color-text-muted)'}}>Only admins can change warehouse.</p>}
                 {errors.warehouse_id?.message && <p className="error-message">{String(errors.warehouse_id.message)}</p>}
               </div>
               <div className="form-group">

@@ -9,6 +9,7 @@ import * as productService from '../../services/productService';
 import LocationPicker from '../../components/LocationPicker';
 import './VendorDetails.css'
 import TableCard from '../../components/table/TableCard';
+import LoadingOverlay from '../../components/LoadingOverlay';
 
 export interface VendorDetailsProps {
   vendor: { id: string; business_name: string; };
@@ -357,7 +358,7 @@ const VendorDetails: React.FC<VendorDetailsProps> = ({ vendor, open, onClose }) 
               }
             >
               {isLoadingStores ? (
-                <div>Loading stores…</div>
+                <LoadingOverlay label="Loading stores" />
               ) : (
                 <>
                   {createStoreOpen && (

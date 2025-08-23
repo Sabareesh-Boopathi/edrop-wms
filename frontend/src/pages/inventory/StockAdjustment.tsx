@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import '../../theme/utilities.css';
 import '../inbound/Inbound.css';
 import { getWarehouses } from '../../services/warehouseService';
+import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 import notify from '../../lib/notify';
 import KpiCard from '../../components/KpiCard';
@@ -21,18 +22,14 @@ type InventoryRow = {
   store_name: string;
 };
 
-// Mock inventory data (visual only)
-const MOCK_INVENTORY: InventoryRow[] = [
-  { id: 'sp-1001', store_id: 'store-001', product_id: 'prod-001', available_qty: 120, price: 199.0, bin_code: 'A1-01', product_name: 'Eco Bottle 1L', store_name: 'Store Alpha' },
-  { id: 'sp-1002', store_id: 'store-002', product_id: 'prod-002', available_qty: 45, price: 349.5, bin_code: 'B2-14', product_name: 'Stainless Lunchbox', store_name: 'Store Beta' },
-  { id: 'sp-1003', store_id: 'store-001', product_id: 'prod-003', available_qty: 0, price: 79.99, bin_code: 'C3-07', product_name: 'Canvas Tote Bag', store_name: 'Store Alpha' },
-  { id: 'sp-1004', store_id: 'store-003', product_id: 'prod-004', available_qty: 260, price: 29.0, bin_code: 'D4-22', product_name: 'Bamboo Straw Pack', store_name: 'Store Gamma' },
-  { id: 'sp-1005', store_id: 'store-002', product_id: 'prod-005', available_qty: 8, price: 999.0, bin_code: null, product_name: 'Solar Power Bank', store_name: 'Store Beta' },
-];
+// Using real backend data; no mock fallback
 
 const StockAdjustment: React.FC = () => {
   const [warehouses, setWarehouses] = useState<WarehouseDTO[]>([]);
   const [warehouseId, setWarehouseId] = useState<string>('');
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+  const mappedWarehouseId = (user?.warehouse_id ?? localStorage.getItem('AUTH_USER_WAREHOUSE_ID') ?? '') as string;
   const [rows, setRows] = useState<InventoryRow[]>([]);
   const [pending, setPending] = useState<Record<string, number>>({});
   const [reasons, setReasons] = useState<Record<string, string>>({});
@@ -53,18 +50,19 @@ const StockAdjustment: React.FC = () => {
 
   useEffect(() => {
     (async () => {
-      const ws = await getWarehouses();
+  let ws = await getWarehouses();
+  if (!isAdmin && mappedWarehouseId) ws = ws.filter((w: any) => String(w.id) === String(mappedWarehouseId));
       setWarehouses(ws);
-      if (ws.length && !warehouseId) setWarehouseId(ws[0].id);
+      if (ws.length) setWarehouseId(String(!isAdmin && mappedWarehouseId ? mappedWarehouseId : ws[0].id));
     })();
-  }, []);
+  }, [isAdmin, mappedWarehouseId]);
 
   useEffect(() => {
     if (!warehouseId) return;
     api.get(`/warehouses/${warehouseId}/products`).then((res) => {
       const data = res.data;
-  const items = Array.isArray(data) ? data : (data?.items ?? []);
-  setRows(items.length ? items : MOCK_INVENTORY);
+      const items = Array.isArray(data) ? data : (data?.items ?? []);
+      setRows(items);
     });
   }, [warehouseId]);
 
@@ -81,9 +79,9 @@ const StockAdjustment: React.FC = () => {
         items: [{ store_product_id: id, available_qty: newQty, reason }],
       });
       const res = await api.get(`/warehouses/${warehouseId}/products`);
-      const data = res.data;
-      const items = Array.isArray(data) ? data : (data?.items ?? []);
-      setRows(items.length ? items : MOCK_INVENTORY);
+  const data = res.data;
+  const items = Array.isArray(data) ? data : (data?.items ?? []);
+  setRows(items);
       setEditing((e) => ({ ...e, [id]: false }));
   setReasons((rs) => { const { [id]: _, ...rest } = rs; return rest; });
       notify.success('Row saved');
@@ -163,7 +161,7 @@ const StockAdjustment: React.FC = () => {
   <TableCard
         variant="inbound"
         title="Stock Adjustment"
-        warehouse={(
+        warehouse={isAdmin ? (
           <div className="form-field" style={{ maxWidth: 260 }}>
             <label>Warehouse</label>
             <select value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)}>
@@ -172,7 +170,7 @@ const StockAdjustment: React.FC = () => {
               ))}
             </select>
           </div>
-        )}
+        ) : undefined}
         search={(
           <div className="form-field" style={{ maxWidth: 340 }}>
             <label>Search</label>

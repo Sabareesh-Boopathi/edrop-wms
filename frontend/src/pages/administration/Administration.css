@@ -1,0 +1,336 @@
+/* Administration pages styles */
+.administration-layout {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.administration-header {
+  margin-bottom: 24px;
+}
+
+.administration-header h1 {
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: var(--color-text-primary);
+}
+
+.administration-header p {
+  color: var(--color-text-soft);
+  margin: 0;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.administration-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.administration-table th,
+.administration-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.administration-table th {
+  background-color: var(--color-background-soft);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.administration-table tbody tr:hover {
+  background-color: var(--color-background-hover);
+}
+
+.administration-table tbody tr.appearing {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.table-filters {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.filter-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  gap: 8px;
+}
+
+.filter-group input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 14px;
+  min-width: 200px;
+}
+
+.table-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  border-top: 1px solid var(--color-border);
+  margin-top: 16px;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.btn-primary-token {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.btn-primary-token:hover {
+  background: var(--color-primary-dark);
+}
+
+.btn-outline-token {
+  background: transparent;
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.btn-outline-token:hover {
+  background: var(--color-background-hover);
+}
+
+.btn-outline-token:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-outline-token.delete {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.btn-outline-token.delete:hover {
+  background: var(--color-danger);
+  color: white;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.status-badge.active {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.status-badge.inactive {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+.community-info,
+.customer-info,
+.contact-info,
+.location-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.community-address,
+.community-code {
+  font-size: 12px;
+  color: var(--color-text-soft);
+}
+
+.text-soft {
+  color: var(--color-text-soft);
+}
+
+.table-loading {
+  text-align: center;
+  padding: 40px;
+  color: var(--color-text-soft);
+}
+
+/* Modal styles */
+.inbound-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.inbound-modal {
+  background: var(--color-background);
+  border-radius: 8px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.inbound-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 24px 0 24px;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 0;
+}
+
+.inbound-modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.inbound-modal-body {
+  padding: 24px;
+}
+
+.inbound-modal-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 0 24px 24px 24px;
+  border-top: 1px solid var(--color-border);
+  margin-top: 24px;
+  padding-top: 24px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 14px;
+  background: var(--color-background);
+  color: var(--color-text-primary);
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.form-field input.error,
+.form-field select.error,
+.form-field textarea.error {
+  border-color: var(--color-danger);
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.error-text {
+  color: var(--color-danger);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* Status chips for customer status */
+.status-chip {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-active {
+  background-color: rgba(34, 197, 94, 0.1);
+  color: rgb(34, 197, 94);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.status-inactive {
+  background-color: rgba(156, 163, 175, 0.1);
+  color: rgb(156, 163, 175);
+  border: 1px solid rgba(156, 163, 175, 0.2);
+}
+
+.status-suspended {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: rgb(239, 68, 68);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* Location info styling */
+.location-info {
+  font-size: 13px;
+}
+
+.location-info div {
+  margin-bottom: 2px;
+}

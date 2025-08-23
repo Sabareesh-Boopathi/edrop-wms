@@ -1,21 +1,38 @@
+.location-picker-overlay {
+    position: fixed;
+    inset: 0;
+    background: color-mix(in srgb, var(--color-black) 45%, transparent);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 1300; /* higher than inbound modal (1100) */
+}
+
 .location-picker-content {
     background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
-    padding: 1.5rem;
-    width: 90vw;
-    max-width: 800px;
-    height: 80vh;
+    width: 92vw;
+    max-width: 980px;
+    /* Fix overall height so footer never leaves viewport */
+    height: clamp(520px, 80vh, 780px);
+    max-height: 90vh;
     display: flex;
     flex-direction: column;
+    overflow: hidden; /* prevent content from pushing modal beyond viewport */
 }
 
 .map-container {
-    flex-grow: 1;
+    /* Take remaining space between header and footer */
+    flex: 1 1 auto;
     border-radius: var(--radius-md);
     overflow: hidden;
-    margin-top: 1rem;
+    margin: 0.75rem 0;
     border: 1px solid var(--color-border);
+    min-height: 300px; /* allow a bit more room for footer on shorter screens */
 }
 
 .leaflet-container {
@@ -50,6 +67,57 @@
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
+/* Close button alignment */
+.close-btn { color: var(--color-text-soft); }
+
 .modal-footer .btn .icon {
     margin-right: 0.5rem;
+}
+
+/* Header & footer layout to keep actions visible */
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.modal-title { font-size: 1.35rem; font-weight: 700; }
+
+.modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--color-border);
+    background: var(--color-surface);
+    flex-shrink: 0; /* never shrink footer below view */
+}
+
+/* Optional: style for the floating locate button placed inside the map */
+.locate-me-btn {
+    position: absolute;
+    right: 18px;
+    top: 70px;
+    z-index: 500; /* above map tiles but below geosearch bar */
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+    color: var(--color-text-soft);
+}
+.locate-me-btn:hover { color: var(--color-text); }
+
+/* Fit better on short screens */
+@media (max-height: 640px) {
+    .location-picker-overlay { padding: 12px; }
+    .location-picker-content { height: 86vh; }
+    .map-container { min-height: 220px; }
 }

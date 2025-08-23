@@ -16,6 +16,7 @@ import Celebration from '../../components/Celebration';
 import './WarehouseManagement.css';
 import EmptyState from '../../components/EmptyState';
 import KpiCard from '../../components/KpiCard';
+import LoadingOverlay from '../../components/LoadingOverlay';
 
 const WAREHOUSE_STATUSES_TUPLE = ["ACTIVE", "INACTIVE", "NEAR_CAPACITY"] as const;
 
@@ -195,7 +196,7 @@ const WarehouseManagement: React.FC = () => {
 	};
 
 	if (isLoading) {
-		return <div>Loading...</div>; // Or a spinner component
+		return <LoadingOverlay fullscreen label="Loading warehouses" />;
 	}
 
 	if (!isLoading && warehouses.length === 0) {

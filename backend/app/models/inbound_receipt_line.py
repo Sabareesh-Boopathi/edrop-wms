@@ -34,3 +34,11 @@ class InboundReceiptLine(Base):
     notes = Column(String(512), nullable=True)
 
     receipt = relationship("InboundReceipt", back_populates="lines")
+    bin = relationship("Bin", lazy='joined')
+
+    @property
+    def bin_code(self) -> str | None:
+        try:
+            return self.bin.code if hasattr(self, 'bin') and self.bin else None
+        except Exception:
+            return None

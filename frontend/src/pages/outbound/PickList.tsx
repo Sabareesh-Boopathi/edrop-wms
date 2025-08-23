@@ -1,178 +1,230 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import KpiCard from '../../components/KpiCard';
 import TableCard from '../../components/table/TableCard';
 import EmptyState from '../../components/EmptyState';
-import { ChevronLeft, ChevronRight, PackageSearch, ListChecks, Trash2, MapPin, RefreshCw, AlertTriangle, Search, CheckCircle } from 'lucide-react';
-import KpiCard from '../../components/KpiCard';
-import '../inbound/Inbound.css';
+import UtilizationBar from '../../components/outbound/UtilizationBar';
+import { Search, ListChecks, User, MapPin, Play, CheckCircle, AlertTriangle, ChevronLeft, ChevronRight, Pause, StopCircle } from 'lucide-react';
 import * as notify from '../../lib/notify';
-import {
-  fetchPickTasks,
-  fetchToteLocation,
-  reassignPickTask,
-  cancelPickTask,
-  splitPickTask,
-  type PickTask,
-  type ToteLocation,
-} from '../../services/outboundService';
+import LoadingOverlay from '../../components/LoadingOverlay';
+import '../inbound/Inbound.css';
 import './outbound.css';
+import { fetchPickTasks, type PickTask } from '../../services/outboundService';
+import './outbound.css';
+
+type PickRow = {
+  order_id: string;
+  tote_ids: string[]; // consolidated totes
+  sku_count: number;
+  location: string;
+  priority: 'Low' | 'Medium' | 'High';
+  picker?: string;
+  utilizationPct: number; // 0-100
+  status: 'Pending' | 'InProgress' | 'Completed';
+};
+
+// Compact Tote(s) cell with hover/click popover listing all totes
+const TotesCell: React.FC<{ ids: string[]; multi: boolean }> = ({ ids, multi }) => {
+  const [open, setOpen] = useState(false);
+  const first = ids[0];
+  const extra = Math.max(0, ids.length - 1);
+  return (
+    <div className="totes-wrap" onMouseLeave={() => setOpen(false)}>
+    <span className="chip chip-tote">{first}</span>
+      {extra > 0 && (
+        <button
+          type="button"
+      className="chip chip-tote"
+          onClick={() => setOpen(v => !v)}
+          onMouseEnter={() => setOpen(true)}
+          title={ids.join(', ')}
+          style={{ cursor:'pointer' }}
+        >
+          +{extra}
+        </button>
+      )}
+    {multi ? <span className="chip chip-type">Multi</span> : <span className="chip chip-type">Single</span>}
+      {open && extra > 0 && (
+        <div className="totes-popover" role="dialog" aria-label="Tote list">
+          <div className="totes-popover-title">Totes</div>
+          <div className="totes-grid">
+            {ids.map(t => (
+        <div key={t} className="chip chip-tote">{t}</div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const mapPickTasksToRows = (tasks: PickTask[]): PickRow[] => {
+  // Group by order_id and aggregate totes; estimate utilization from sku_count
+  const byOrder = new Map<string, PickRow>();
+  for (const t of tasks) {
+    const status = t.status === 'completed' ? 'Completed' : t.status === 'in_progress' ? 'InProgress' : 'Pending';
+    const utilizationPct = Math.min(100, Math.max(10, (t.sku_count || 0) * 8));
+    const existing = byOrder.get(t.order_id);
+    if (existing) {
+      existing.tote_ids.push(t.tote_id);
+      existing.sku_count += t.sku_count || 0;
+      existing.picker = existing.picker || t.picker;
+      existing.status = existing.status === 'Completed' ? 'Completed' : status; // keep max state
+    } else {
+      byOrder.set(t.order_id, {
+        order_id: t.order_id,
+        tote_ids: [t.tote_id],
+        sku_count: t.sku_count || 0,
+        location: 'staging',
+        priority: 'Medium',
+        picker: t.picker,
+        utilizationPct,
+        status,
+      });
+    }
+  }
+  return Array.from(byOrder.values());
+};
 
 const PAGE_SIZE = 10;
 
-const statusColor: Record<string, string> = {
-  pending: 'var(--color-text-muted)',
-  in_progress: 'var(--color-primary)',
-  completed: 'var(--color-success)',
-  exception: 'var(--color-error)'
-};
-
 const PickList: React.FC = () => {
+  const [rows, setRows] = useState<PickRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [tasks, setTasks] = useState<PickTask[]>([]);
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
-  const [locByTote, setLocByTote] = useState<Record<string, ToteLocation | 'loading'>>({});
+  const [statusFilter, setStatusFilter] = useState<'All'|'Assigned'|'Unassigned'>('All');
+  const [completeFor, setCompleteFor] = useState<PickRow | null>(null);
+  const [completeLines, setCompleteLines] = useState<Array<{ sku: string; name: string; planned: number; picked: number }>>([]);
+  const [shortsConfirm, setShortsConfirm] = useState(false);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchPickTasks();
-      setTasks(data);
-    } catch {
-      notify.error('Failed to load pick tasks');
+      const tasks = await fetchPickTasks();
+      setRows(mapPickTasksToRows(tasks));
     } finally {
       setLoading(false);
     }
-  }
-
-  useEffect(() => {
-    let mounted = true;
-    load();
-    const t = window.setInterval(() => { if (mounted) load(); }, 10000); // 10s poll
-    return () => { mounted = false; window.clearInterval(t); };
   }, []);
+  useEffect(() => { void load(); }, [load]);
 
   const filtered = useMemo(() => {
+    let arr = [...rows];
     const term = q.trim().toLowerCase();
-    if (!term) return tasks;
-    return tasks.filter(t => (
-      t.tote_id.toLowerCase().includes(term) ||
-      t.order_id.toLowerCase().includes(term) ||
-      (t.picker || '').toLowerCase().includes(term) ||
-      t.status.toLowerCase().includes(term)
-    ));
-  }, [tasks, q]);
+    if (term) arr = arr.filter(r => r.order_id.toLowerCase().includes(term) || r.tote_ids.join(',').toLowerCase().includes(term) || (r.picker||'').toLowerCase().includes(term) || r.location.toLowerCase().includes(term));
+    if (statusFilter === 'Assigned') arr = arr.filter(r => !!r.picker);
+    if (statusFilter === 'Unassigned') arr = arr.filter(r => !r.picker);
+    return arr;
+  }, [rows, q, statusFilter]);
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paged = useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE;
-    return filtered.slice(start, start + PAGE_SIZE);
-  }, [filtered, page]);
+  const total = filtered.length;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const paged = useMemo(() => { const s = (page - 1) * PAGE_SIZE; return filtered.slice(s, s + PAGE_SIZE); }, [filtered, page]);
   useEffect(() => { if (page > pageCount) setPage(pageCount); }, [pageCount, page]);
 
-  // Metrics
-  const totalSkus = tasks.reduce((sum, t) => sum + (t.sku_count || 0), 0);
-  const completed = tasks.filter(t => t.status === 'completed').length;
-  const inProgress = tasks.filter(t => t.status === 'in_progress').length;
-  const pending = tasks.filter(t => t.status === 'pending').length;
-  // Simple efficiency heuristic
-  const efficiency = tasks.length ? Math.round((completed / tasks.length) * 100) : 0;
+  // KPIs
+  const kpiTotal = rows.length;
+  const kpiCompleted = rows.filter(r => r.status === 'Completed').length;
+  const kpiPending = Math.max(0, kpiTotal - kpiCompleted);
 
-  const locateTote = async (toteId: string) => {
-    if (locByTote[toteId] === 'loading') return;
-    setLocByTote(prev => ({ ...prev, [toteId]: 'loading' }));
-    const loc = await fetchToteLocation(toteId);
-    setLocByTote(prev => ({ ...prev, [toteId]: loc }));
+  // Actions
+  const onStartPicking = (orderId: string) => { notify.info(`Start picking ${orderId}`); };
+  const onPausePicking = (orderId: string) => { notify.info(`Pause ${orderId}`); };
+  const onStopPicking = (orderId: string) => { notify.info(`Stop ${orderId}`); };
+  const openCompleteModal = (row: PickRow) => {
+    // Generate mock lines for confirmation based on sku_count
+    const lineCount = Math.min(5, Math.max(1, Math.ceil(row.sku_count / 3)));
+    const lines = Array.from({ length: lineCount }).map((_, i) => {
+      const planned = Math.max(1, Math.min(5, Math.ceil(row.sku_count / lineCount) - (i % 2)));
+      return {
+        sku: `${row.order_id.replace('ORD-','SKU-')}-${i+1}`,
+        name: `Item ${i+1}`,
+        planned,
+        picked: planned,
+      };
+    });
+    setCompleteLines(lines);
+    setCompleteFor(row);
   };
-
-  const onReassign = async (taskId: string) => {
-    const picker = window.prompt('Reassign to picker (name/email):');
-    if (!picker) return;
-    await reassignPickTask(taskId, picker);
-    notify.success('Task reassigned');
-    load();
+  const confirmComplete = () => {
+    if (!completeFor) return;
+    const mismatch = completeLines.filter(l => l.picked !== l.planned);
+    if (mismatch.length) { setShortsConfirm(true); return; }
+  notify.success(`Marked ${completeFor.order_id} completed`);
+    setCompleteFor(null);
   };
-  const onCancel = async (taskId: string) => {
-    if (!window.confirm('Cancel this pick task?')) return;
-    await cancelPickTask(taskId);
-    notify.info('Task canceled');
-    load();
-  };
-  const onSplit = async (taskId: string) => {
-    const input = window.prompt('Split between pickers (comma separated):');
-    if (!input) return;
-    const pickers = input.split(',').map(s => s.trim()).filter(Boolean);
-    if (!pickers.length) return;
-    await splitPickTask(taskId, pickers);
-    notify.success('Task split');
-    load();
+  const proceedCompleteWithShorts = () => {
+  if (!completeFor) return;
+  notify.warn(`Completed ${completeFor.order_id} with shorts`);
+    setShortsConfirm(false);
+    setCompleteFor(null);
   };
 
   return (
-    <div className="page-container">
+    <div className="page-container inbound-page">
       <div className="inbound-header">
         <div>
           <h1>Pick List</h1>
-          <p>Manage pick tasks, monitor progress, and handle exceptions.</p>
-        </div>
-        <div className="inline-actions">
-          <button className="btn-outline-token" onClick={load} title={loading ? 'Refreshing…' : 'Refresh'} disabled={loading}>
-            <RefreshCw size={16}/> Refresh
-          </button>
+          <p>Search, filter, and manage active pick orders. Monitor tote utilization for efficient closure.</p>
         </div>
       </div>
 
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
-        <KpiCard icon={<ListChecks />} title="Total Tasks" value={tasks.length} variant="slate" caption={`Efficiency ${efficiency}%`} />
-        <KpiCard icon={<RefreshCw />} title="In Progress" value={inProgress} variant="indigo" />
-        <KpiCard icon={<CheckCircle />} title="Completed" value={completed} variant="emerald" />
+        <KpiCard icon={<ListChecks />} title="Total Orders" value={kpiTotal} variant="slate" />
+        <KpiCard icon={<CheckCircle />} title="Completed" value={kpiCompleted} variant="emerald" />
+        <KpiCard icon={<AlertTriangle />} title="Pending" value={kpiPending} variant="orange" />
       </div>
+
       <TableCard
         variant="inbound"
-        title={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><ListChecks size={18}/> Pick List Console</div>}
+  title={<div style={{ display:'flex', alignItems:'center', gap:8 }}><ListChecks size={18}/> Active Pick Orders</div>}
+  warehouse={undefined}
         search={
-          <div className="form-field" style={{ maxWidth: 340 }}>
+          <div className="form-field" style={{ maxWidth: 360 }}>
             <label>Search</label>
-            <div style={{ position: 'relative' }}>
-              <Search size={16} style={{ position: 'absolute', left: 8, top: '50%', transform:'translateY(-50%)', color: 'var(--color-text-subtle)' }} />
-              <input style={{ paddingLeft: 30 }} placeholder="Tote / Order / Picker / Status" value={q} onChange={(e)=>{setQ(e.target.value); setPage(1);}} />
+            <div style={{ position:'relative' }}>
+              <Search size={16} style={{ position:'absolute', left:8, top:'50%', transform:'translateY(-50%)', color:'var(--color-text-subtle)' }}/>
+              <input style={{ paddingLeft: 30 }} placeholder="Order / Tote / Picker / Location" value={q} onChange={(e)=>{ setQ(e.target.value); setPage(1); }} />
             </div>
           </div>
         }
-        actions={<button className="btn-outline-token" onClick={load}><RefreshCw size={16}/> Refresh</button>}
         filters={
-          <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
-            <div className="chip" style={{ background:'var(--color-surface-alt)', border:'1px solid var(--color-border)' }}>Total SKUs: <strong>{totalSkus}</strong></div>
-            <div className="chip" style={{ background:'var(--util-high-bg)', border:'1px solid var(--util-high-border)', color:'var(--util-high-text)' }}>In Progress: <strong>{inProgress}</strong></div>
-            <div className="chip" style={{ background:'var(--color-primary-soft)', border:'1px solid var(--color-primary-hover)', color:'var(--color-primary)' }}>Pending: <strong>{pending}</strong></div>
-            <div className="chip" style={{ background:'color-mix(in srgb, var(--color-success) 12%, transparent)', border:'1px solid var(--color-success)', color:'var(--color-success)' }}>Completed: <strong>{completed}</strong></div>
-            <div className="chip" style={{ background:'var(--color-surface-alt)', border:'1px solid var(--color-border)' }}>Efficiency: <strong>{efficiency}%</strong></div>
-          </div>
+          <>
+            <div className="form-field" style={{ minWidth: 160, width: 'auto', flex: '0 0 auto' }}>
+              <label>Status</label>
+              <select value={statusFilter} onChange={(e)=>{ setStatusFilter(e.target.value as any); setPage(1); }}>
+                <option value="All">All</option>
+                <option value="Assigned">Assigned</option>
+                <option value="Unassigned">Unassigned</option>
+              </select>
+            </div>
+          </>
         }
         footer={
           <>
-            <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{loading ? 'Loading…' : `Total tasks: ${filtered.length}`}</span>
-            <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+            <span style={{ fontSize:12, color:'var(--color-text-muted)' }}>
+              {`Showing ${total ? Math.min(total, (page-1)*PAGE_SIZE+1) : 0}-${total ? Math.min(page*PAGE_SIZE, total) : 0} of ${total}`}
+            </span>
+            <div style={{ display:'inline-flex', alignItems:'center', gap:8 }}>
               <button
                 type="button"
-                className="btn-outline-token"
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page <= 1}
+                className="pager-btn"
+                disabled={page<=1}
+                onClick={()=> setPage(p=> Math.max(1, p-1))}
                 aria-label="Previous page"
                 title="Previous"
-                style={{ width: 'var(--control-height-sm)', height: 'var(--control-height-sm)', padding: 0, display: 'grid', placeItems: 'center' }}
               >
                 <ChevronLeft size={16} />
               </button>
-              <span style={{ minWidth: 32, textAlign: 'center', fontSize: 12 }}>Page {page} / {pageCount}</span>
+              <span style={{ minWidth:32, textAlign:'center', fontSize:12 }}>{page}/{pageCount}</span>
               <button
                 type="button"
-                className="btn-outline-token"
-                onClick={() => setPage(p => Math.min(pageCount, p + 1))}
-                disabled={page >= pageCount}
+                className="pager-btn"
+                disabled={page>=pageCount}
+                onClick={()=> setPage(p=> Math.min(pageCount, p+1))}
                 aria-label="Next page"
                 title="Next"
-                style={{ width: 'var(--control-height-sm)', height: 'var(--control-height-sm)', padding: 0, display: 'grid', placeItems: 'center' }}
               >
                 <ChevronRight size={16} />
               </button>
@@ -180,78 +232,67 @@ const PickList: React.FC = () => {
           </>
         }
       >
-        <div style={{ overflowX: 'auto' }}>
-          <table className="inbound-table">
+        <div style={{ overflowX:'auto' }}>
+          <table className="inbound-table pick-table">
             <thead>
               <tr>
-                <th className="px-4 py-2 text-left">Tote</th>
                 <th className="px-4 py-2 text-left">Order</th>
+                <th className="px-4 py-2 text-left">Tote(s)</th>
                 <th className="px-4 py-2 text-left">SKUs</th>
+                <th className="px-4 py-2 text-left">Location</th>
+                <th className="px-4 py-2 text-left">Priority</th>
                 <th className="px-4 py-2 text-left">Picker</th>
-                <th className="px-4 py-2 text-left">Status</th>
-                <th className="px-4 py-2 text-left">Exceptions</th>
+                <th className="px-4 py-2 text-left">Utilization</th>
                 <th className="px-4 py-2 text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {paged.length === 0 && !loading ? (
+              {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-6">
-                    <EmptyState
-                      icon={<PackageSearch />}
-                      title="No active pick tasks"
-                      message="New orders will appear here as pick tasks are created."
-                      actionLabel="Refresh"
-                      onAction={load}
-                      actionClassName="btn-outline-token"
-                    />
+                  <td colSpan={8} className="px-4 py-6"><LoadingOverlay label="Loading pick orders" /></td>
+                </tr>
+              ) : paged.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-4 py-6">
+                    <EmptyState icon={<ListChecks />} title="No active orders" message="New pick tasks will appear here." />
                   </td>
                 </tr>
               ) : null}
-              {paged.map(t => {
-                const loc = locByTote[t.tote_id];
+              {paged.map(r => {
+                const multi = r.tote_ids.length > 1;
                 return (
-                  <tr key={t.id}>
-                    <td className="px-4 py-2" style={{ display:'flex', alignItems:'center', gap:8 }}>
-                      <span style={{ fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace' }}>{t.tote_id}</span>
-                      <button className="icon-btn-plain" title="Locate tote" onClick={() => locateTote(t.tote_id)}>
-                        <MapPin size={16} />
-                      </button>
-                      {loc && loc !== 'loading' ? (
-                        <span className="chip" style={{ background:'var(--color-surface-alt)', border:'1px solid var(--color-border)', fontWeight:600 }}>
-                          {loc.location.replace('_',' ')}
-                        </span>
-                      ) : loc === 'loading' ? (
-                        <span style={{ fontSize:12, color:'var(--color-text-muted)' }}>Locating…</span>
-                      ) : null}
-                    </td>
-                    <td className="px-4 py-2" style={{ fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace' }}>{t.order_id}</td>
-                    <td className="px-4 py-2">{t.sku_count}</td>
-                    <td className="px-4 py-2">{t.picker || <span style={{ color:'var(--color-text-muted)' }}>—</span>}</td>
+                  <tr key={r.order_id}>
+                    <td className="px-4 py-2" style={{ fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace' }}>{r.order_id}</td>
                     <td className="px-4 py-2">
-                      <span className="chip" style={{ background:'var(--color-surface-alt)', border:'1px solid var(--color-border)', color: statusColor[t.status] || 'inherit', textTransform:'capitalize' }}>{t.status.replace('_',' ')}</span>
+                      <TotesCell ids={r.tote_ids} multi={multi} />
+                    </td>
+                    <td className="px-4 py-2">{r.sku_count}</td>
+                    <td className="px-4 py-2" style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      <MapPin size={14}/> {r.location}
                     </td>
                     <td className="px-4 py-2">
-                      <div style={{ display:'inline-flex', gap:6, flexWrap:'wrap' }}>
-                        {(t.exceptions || []).map((ex, i) => (
-                          <span key={i} className="chip" style={{ background:'color-mix(in srgb, var(--color-error) 10%, transparent)', border:'1px solid var(--color-error)', color:'var(--color-error)' }}>
-                            <AlertTriangle size={12}/> {ex.replace('_',' ')}
-                          </span>
-                        ))}
-                        {(!t.exceptions || t.exceptions.length === 0) ? <span style={{ color:'var(--color-text-muted)', fontSize:12 }}>None</span> : null}
-                      </div>
+                        <span className="chip" style={{ background: r.priority==='High' ? 'var(--util-high-bg)' : r.priority==='Medium' ? 'var(--util-med-bg)' : 'var(--util-low-bg)', border:'1px solid var(--color-border)' }}>{r.priority}</span>
                     </td>
                     <td className="px-4 py-2">
-                      <div style={{ display:'inline-flex', gap:10 }}>
-                        <button type="button" className="action-link primary" onClick={() => onReassign(t.id)}>
-                          Reassign
-                        </button>
-                        <button type="button" className="action-link primary" onClick={() => onSplit(t.id)}>
-                          Split Task
-                        </button>
-                        <button type="button" className="action-link danger" onClick={() => onCancel(t.id)}>
-                          <Trash2 size={16}/> Cancel
-                        </button>
+                      {r.picker ? (
+                        <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><User size={14}/> {r.picker}</span>
+                      ) : <span style={{ color:'var(--color-text-muted)' }}>Unassigned</span>}
+                    </td>
+                    <td className="px-4 py-2" style={{ minWidth: 160 }}>
+                      <UtilizationBar value={r.utilizationPct} />
+                    </td>
+                    <td className="px-4 py-2">
+                      <div style={{ display:'inline-flex', gap:10, whiteSpace:'nowrap' }}>
+                        {r.status === 'Pending' && (
+                          <button className="action-link primary" onClick={()=> onStartPicking(r.order_id)}><Play size={16}/> Start</button>
+                        )}
+                        {r.status === 'InProgress' && (
+                          <>
+                            <button className="action-link muted" onClick={()=> onPausePicking(r.order_id)}><Pause size={16}/> Pause</button>
+                            <button className="action-link danger" onClick={()=> onStopPicking(r.order_id)}><StopCircle size={16}/> Stop</button>
+                          </>
+                        )}
+                        <button className="action-link success" onClick={()=> openCompleteModal(r)}><CheckCircle size={16}/> Complete</button>
                       </div>
                     </td>
                   </tr>
@@ -260,7 +301,80 @@ const PickList: React.FC = () => {
             </tbody>
           </table>
         </div>
-      </TableCard>
+  </TableCard>
+
+      {completeFor && (
+        <div className="inbound-modal-overlay" onClick={()=> setCompleteFor(null)}>
+          <div className="inbound-modal" onClick={e=>e.stopPropagation()} style={{maxWidth: 760}}>
+            <div className="inbound-modal-header">
+              <h2 className="inbound-modal-title">Complete Picking: {completeFor.order_id}</h2>
+              <button className="btn-outline-token" onClick={()=> setCompleteFor(null)}>Close</button>
+            </div>
+            <div className="inbound-modal-body" style={{gap:12}}>
+              <table className="inbound-table">
+                <thead>
+                  <tr>
+                    <th>SKU</th>
+                    <th>Item</th>
+                    <th>Planned</th>
+                    <th>Picked</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {completeLines.map((l, idx) => (
+                    <tr key={l.sku}>
+                      <td style={{fontFamily:'ui-monospace, Menlo, monospace'}}>{l.sku}</td>
+                      <td>{l.name}</td>
+                      <td>{l.planned}</td>
+                      <td>
+                        <input
+                          className="line-input"
+                          type="number"
+                          min={0}
+                          style={{width:80}}
+                          value={l.picked}
+                          onChange={e=>{
+                            const val = Math.max(0, Number(e.target.value||0));
+                            setCompleteLines(prev => prev.map((x,i)=> i===idx ? { ...x, picked: val } : x));
+                          }}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="empty-hint" style={{marginTop:8}}>Please confirm picked quantities match planned for accuracy.</div>
+            </div>
+            <div className="inbound-modal-footer" style={{justifyContent:'space-between'}}>
+              <div />
+              <div style={{display:'flex', gap:8}}>
+                <button className="btn-outline-token" onClick={()=> setCompleteFor(null)}>Cancel</button>
+                <button className="btn-primary-token" onClick={confirmComplete}>Confirm Complete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {shortsConfirm && (
+        <div className="inbound-modal-overlay" onClick={()=> setShortsConfirm(false)}>
+          <div className="inbound-modal" onClick={e=>e.stopPropagation()} style={{maxWidth: 520}}>
+            <div className="inbound-modal-header">
+              <h2 className="inbound-modal-title">Complete with shorts?</h2>
+              <button className="btn-outline-token" onClick={()=> setShortsConfirm(false)}>Close</button>
+            </div>
+            <div className="inbound-modal-body">
+              <p>Some product lines have picked quantity less than planned. Do you want to proceed and mark the order as completed?</p>
+            </div>
+            <div className="inbound-modal-footer" style={{justifyContent:'space-between'}}>
+              <div />
+              <div style={{display:'flex', gap:8}}>
+                <button className="btn-outline-token" onClick={()=> setShortsConfirm(false)}>Cancel</button>
+                <button className="btn-primary-token" onClick={proceedCompleteWithShorts}>Proceed</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '../../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import TableCard from '../../components/table/TableCard';
+import { useAuth } from '../../contexts/AuthContext';
 import { MoreHorizontal, PlusCircle, X, Users, Shield, UserCheck, Edit, Trash2, Phone, MapPin, Search, RotateCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,6 +15,7 @@ import { getWarehouses } from '../../services/warehouseService';
 import './UsersAndRoles.css';
 import EmptyState from '../../components/EmptyState';
 import KpiCard from '../../components/KpiCard';
+import LoadingOverlay from '../../components/LoadingOverlay';
 import { useConfig } from '../../contexts/ConfigContext';
 
 const USER_STATUSES_TUPLE = ['ACTIVE', 'INACTIVE', 'PENDING'] as const;
@@ -62,6 +64,10 @@ const UsersAndRoles: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const { formatDate } = useConfig();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+  const isManager = user?.role === 'MANAGER';
+  const managerWarehouseId = (user as any)?.warehouse_id || null;
 
   useEffect(() => {
     fetchUsersWithWarehouses();
@@ -72,7 +78,9 @@ const UsersAndRoles: React.FC = () => {
     (async () => {
       try {
         const data = await getWarehouses();
-        if (active) setWhList(data);
+        const list = Array.isArray(data) ? data : [];
+        const filtered = isManager && managerWarehouseId ? list.filter((w) => w.id === managerWarehouseId) : list;
+        if (active) setWhList(filtered);
       } catch {
         // ignore fetch failure
       }
@@ -80,7 +88,7 @@ const UsersAndRoles: React.FC = () => {
     return () => {
       active = false;
     };
-  }, []);
+  }, [isManager, managerWarehouseId]);
 
   const fetchUsersWithWarehouses = async () => {
     try {
@@ -206,7 +214,7 @@ const UsersAndRoles: React.FC = () => {
   };
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <LoadingOverlay fullscreen label="Loading users" />;
   }
 
   if (!isLoading && users.length === 0) {
@@ -256,18 +264,18 @@ const UsersAndRoles: React.FC = () => {
   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
   <TableCard
     variant="inbound"
-    title="User Directory"
-    warehouse={
-                    <div className="form-field" style={{ minWidth: 220 }}>
-                    <label>Warehouse</label>
-                    <select value={warehouseFilter} onChange={(e) => setWarehouseFilter(e.target.value)}>
-                        <option value="">All</option>
-                        {whList.map((w) => (
-                        <option key={w.id} value={w.id}>{w.name}</option>
-                        ))}
-                    </select>
-                    </div>
-                }
+  title="User Directory"
+  warehouse={isAdmin ? (
+          <div className="form-field" style={{ minWidth: 220 }}>
+          <label>Warehouse</label>
+          <select value={warehouseFilter} onChange={(e) => setWarehouseFilter(e.target.value)}>
+            <option value="">All</option>
+            {whList.map((w) => (
+            <option key={w.id} value={w.id}>{w.name}</option>
+            ))}
+          </select>
+          </div>
+        ) : undefined}
             search={(
                   <div className="form-field" style={{ maxWidth: 340 }}>
                     <label>Search</label>
@@ -446,7 +454,13 @@ const UsersAndRoles: React.FC = () => {
 
       <AnimatePresence>
         {isModalOpen && (
-          <UserModal user={selectedUser} onClose={() => setIsModalOpen(false)} onSave={handleSaveUser} />
+          <UserModal
+            user={selectedUser}
+            onClose={() => setIsModalOpen(false)}
+            onSave={handleSaveUser}
+            currentUserRole={(user as any)?.role as any}
+            currentUserWarehouseId={managerWarehouseId}
+          />
         )}
       </AnimatePresence>
     </div>
@@ -474,10 +488,12 @@ const userSchema = (isEditMode: boolean) =>
     password: isEditMode ? z.string().optional().nullable() : z.string().min(8, 'Password must be at least 8 characters'),
   });
 
-const UserModal: React.FC<{ user: UserData | null; onClose: () => void; onSave: (data: UserSchema) => void }> = ({
+const UserModal: React.FC<{ user: UserData | null; onClose: () => void; onSave: (data: UserSchema) => void; currentUserRole?: Role; currentUserWarehouseId?: string | null }> = ({
   user,
   onClose,
   onSave,
+  currentUserRole,
+  currentUserWarehouseId,
 }) => {
   const isEditMode = user !== null;
   const { register, handleSubmit, formState: { errors }, watch, reset } = useForm<UserSchema>({
@@ -489,24 +505,28 @@ const UserModal: React.FC<{ user: UserData | null; onClose: () => void; onSave: 
       address: user?.address || '',
       role: user?.role || 'VIEWER',
       status: user?.status || 'PENDING',
-      warehouse_id: user?.warehouse_id || null,
+      warehouse_id: user?.warehouse_id || (!isEditMode && currentUserRole === 'MANAGER' ? currentUserWarehouseId || '' : null),
     },
   });
 
   type Warehouse = { id: string; name: string };
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const role = watch('role');
+  const isAdminCtx = currentUserRole === 'ADMIN';
+  const isManagerCtx = currentUserRole === 'MANAGER';
 
   useEffect(() => {
     let active = true;
     (async () => {
       const data = await getWarehouses();
-      if (active) setWarehouses(data);
+      const list = Array.isArray(data) ? data : [];
+      const filtered = isManagerCtx && currentUserWarehouseId ? list.filter((w) => w.id === currentUserWarehouseId) : list;
+      if (active) setWarehouses(filtered);
     })();
     return () => {
       active = false;
     };
-  }, [getWarehouses]);
+  }, [getWarehouses, isManagerCtx, currentUserWarehouseId]);
 
   useEffect(() => {
     if (user) {
@@ -573,10 +593,12 @@ const UserModal: React.FC<{ user: UserData | null; onClose: () => void; onSave: 
             <div className="form-group">
               <label htmlFor="role">Role</label>
               <select id="role" {...register('role')} className={errors.role ? 'error' : ''}>
-                {ROLE_TUPLE.map((role) => (
-                  <option key={role} value={role}>
-                    {role}
-                  </option>
+                {ROLE_TUPLE
+                  .filter((r) => !(isManagerCtx && r === 'ADMIN'))
+                  .map((role) => (
+                    <option key={role} value={role}>
+                      {role}
+                    </option>
                 ))}
               </select>
               {errors.role?.message && <p className="error-message">{String(errors.role.message)}</p>}
@@ -594,7 +616,7 @@ const UserModal: React.FC<{ user: UserData | null; onClose: () => void; onSave: 
               {errors.status?.message && <p className="error-message">{String(errors.status.message)}</p>}
             </div>
 
-            {role !== 'ADMIN' && (
+    {role !== 'ADMIN' && (
               <div className="form-group">
                 <label htmlFor="warehouse_id">Warehouse</label>
                 <select
@@ -604,13 +626,14 @@ const UserModal: React.FC<{ user: UserData | null; onClose: () => void; onSave: 
                     validate: (value) => value !== '' || 'Please select a valid warehouse',
                   })}
                   className={errors.warehouse_id ? 'error' : ''}
-                  value={watch('warehouse_id') || ''}
+      value={watch('warehouse_id') || ''}
+      disabled={isManagerCtx}
                   onChange={(e) => {
                     const updatedValue = e.target.value;
                     reset({ ...watch(), warehouse_id: updatedValue });
                   }}
                 >
-                  <option value="">Select a warehouse</option>
+      <option value="">Select a warehouse</option>
                   {warehouses.map((w) => (
                     <option key={w.id} value={w.id}>
                       {w.name}

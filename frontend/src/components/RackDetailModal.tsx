@@ -123,7 +123,13 @@ const RackDetailModal: React.FC<RackDetailModalProps> = ({ rack, onClose, onEdit
                                                         const fullCode = bin?.code || `${rack.name}-S${String(r+1).padStart(3,'0')}-B${String(c+1).padStart(3,'0')}`;
                                                         // Always display normalized SXXX-BXXX (from indices) for visual consistency
                                                         const shortCode = `S${String(r+1).padStart(3,'0')}-B${String(c+1).padStart(3,'0')}`;
-                                                        const title = `${cfg.label} • ${fullCode}`;
+                                                        
+                                                        // Product information for occupied bins
+                                                        const productInfo = status === 'occupied' && bin ? 
+                                                          `${bin.product_id ? `Product: ${bin.product_id}` : ''}${bin.store_product_id ? ` • Store: ${bin.store_product_id}` : ''}${bin.quantity ? ` • Qty: ${bin.quantity}` : ''}`.replace(/^[•\s]+|[•\s]+$/g, '') :
+                                                          '';
+                                                        
+                                                        const title = `${cfg.label} • ${fullCode}${productInfo ? ` • ${productInfo}` : ''}`;
                                                         return (
                                                             <button
                                                                 key={`${r}-${c}`}
@@ -135,6 +141,11 @@ const RackDetailModal: React.FC<RackDetailModalProps> = ({ rack, onClose, onEdit
                                                             >
                                                                 {cfg.icon}
                                                                 <span className="bin-name">{shortCode}</span>
+                                                                {productInfo && (
+                                                                    <span className="bin-product" style={{fontSize: '0.7em', color: 'var(--color-text-soft)', marginTop: '2px'}}>
+                                                                        {bin?.quantity || '?'}
+                                                                    </span>
+                                                                )}
                                                             </button>
                                                         );
                                                     })}

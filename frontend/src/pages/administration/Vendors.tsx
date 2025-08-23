@@ -16,6 +16,7 @@ import EmptyState from '../../components/EmptyState';
 import KpiCard from '../../components/KpiCard';
 import VendorDetails from './VendorDetails';
 import { useConfig } from '../../contexts/ConfigContext';
+import LoadingOverlay from '../../components/LoadingOverlay';
 
 const VENDOR_STATUSES = ["ACTIVE", "INACTIVE", "KYC PENDING"] as const;
 const VENDOR_TYPES = ["SKU", "FLAT"] as const;
@@ -229,7 +230,17 @@ const Vendors: React.FC = () => {
     };
 
     if (isLoading) {
-        return <div>Loading...</div>;
+        return (
+            <div className="page-content">
+                <header className="header">
+                    <div className="header-text">
+                        <h1>Vendor Management</h1>
+                        <p>Administer vendor profiles, types, and statuses across the platform.</p>
+                    </div>
+                </header>
+                <LoadingOverlay label="Loading vendors" />
+            </div>
+        );
     }
 
     if (!isLoading && vendors.length === 0) {

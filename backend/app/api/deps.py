@@ -1,5 +1,6 @@
 # filepath: backend/app/api/deps.py
 from typing import Generator, Annotated
+import uuid
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt
@@ -12,6 +13,7 @@ from app import crud, models, schemas
 from app.core import security
 from app.core.config import settings
 from app.db.session import SessionLocal
+from fastapi import Request
 
 reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/login/access-token"
@@ -81,3 +83,19 @@ def get_current_active_superuser(
             status_code=403, detail="The user doesn't have enough privileges"
         )
     return current_user
+
+
+def ensure_not_viewer_for_write(request: Request, current_user: models.User = Depends(get_current_active_user)) -> None:
+    """Deny non-GET methods for VIEWER accounts."""
+    if request.method.upper() in {"POST", "PUT", "PATCH", "DELETE"}:
+        role = str(getattr(current_user, "role", "")).upper()
+        if role == "VIEWER":
+            raise HTTPException(status_code=403, detail="VIEWER cannot modify data")
+
+
+def get_effective_warehouse_id(current_user: models.User = Depends(get_current_active_user)) -> uuid.UUID | None:
+    """Return the warehouse_id to scope queries for non-admins; admins are global."""
+    role = str(getattr(current_user, "role", "")).upper()
+    if role == "ADMIN":
+        return None
+    return getattr(current_user, "warehouse_id", None)

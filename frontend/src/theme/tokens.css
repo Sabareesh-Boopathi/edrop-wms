@@ -7,6 +7,12 @@
   --color-primary:#2E8B57; /* base */
   --color-primary-hover:#256d45;
   --color-primary-active:#1e5938;
+  /* Alias for deeper primary used in some components */
+  --color-primary-deep: var(--color-primary-active);
+  
+  /* Indigo scale (used by some chips/badges) */
+  --color-indigo:#6366f1; /* base */
+  --color-indigo-900:#312e81; /* deep text */
   --color-primary-soft:#ecfdf5;
   --color-primary-ring:0 0 0 3px rgba(46,139,87,0.25);
 
@@ -47,6 +53,8 @@
   --color-text:#111827;
   --color-text-soft:#475569;
   --color-text-subtle:#6b7280;
+  /* Alias to support legacy references */
+  --color-text-muted: var(--color-text-subtle);
   --color-text-dim:#94a3b8; /* extra-muted text for timestamps, hints */
 
   /* Spacing (4pt baseline) */

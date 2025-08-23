@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-geosearch/dist/geosearch.css';
+import './LocationPicker.css';
 import L from 'leaflet';
 import { Button } from './ui/button';
 import { X, MapPin, LocateFixed } from 'lucide-react';
-import * as notify from '../lib/notify';
+// notifications removed on request
 
 // Fix for default icon issue with webpack
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -20,6 +21,9 @@ interface LocationPickerProps {
   onClose: () => void;
   onLocationSelect: (lat: number, lng: number) => void;
   initialPosition: [number, number];
+  title?: string;
+  /** When true, tries to fetch system geolocation on open and center marker there. Defaults to true. */
+  autoLocate?: boolean;
 }
 
 const SearchAndLocate = ({ onSelect }: { onSelect: (lat: number, lng: number) => void }) => {
@@ -54,16 +58,15 @@ const SearchAndLocate = ({ onSelect }: { onSelect: (lat: number, lng: number) =>
       };
     }, [map, onSelect]);
 
-    const handleLocateMe = () => {
-        map.locate().on('locationfound', function (e) {
-            onSelect(e.latlng.lat, e.latlng.lng);
-            map.flyTo(e.latlng, 13);
-            notify.success("Location found!");
-        }).on('locationerror', function(e){
-            console.log(e);
-            notify.error("Could not find your location.");
-        });
-    };
+  const handleLocateMe = () => {
+    map.locate().on('locationfound', function (e) {
+      onSelect(e.latlng.lat, e.latlng.lng);
+      map.flyTo(e.latlng, 13);
+    }).on('locationerror', function(e){
+      // keep UX silent but satisfy linter by handling the error
+      console.debug('Leaflet locate() error:', (e as any)?.message || e);
+    });
+  };
   
     return (
         <button type="button" onClick={handleLocateMe} className="locate-me-btn" title="Locate Me">
@@ -81,25 +84,51 @@ const MapEvents = ({ onMapClick }: { onMapClick: (lat: number, lng: number) => v
     return null;
 }
 
-const LocationPicker: React.FC<LocationPickerProps> = ({ onClose, onLocationSelect, initialPosition }) => {
+const AutoLocate: React.FC<{ onSelect: (lat: number, lng: number) => void; enabled: boolean }> = ({ onSelect, enabled }) => {
+  const map = useMap();
+  const doneRef = useRef(false);
+  useEffect(() => {
+    if (!enabled) return;
+    if (doneRef.current) return;
+    doneRef.current = true;
+    const handler = (e: any) => {
+      onSelect(e.latlng.lat, e.latlng.lng);
+      map.flyTo(e.latlng, 13);
+    };
+    map.locate({ setView: false, enableHighAccuracy: true, maxZoom: 13 })
+      .on('locationfound', handler)
+      .on('locationerror', (e: any) => {
+        console.debug('Leaflet auto-locate error:', e?.message || e);
+      });
+    return () => {
+      map.off('locationfound', handler);
+    };
+  }, [enabled, map, onSelect]);
+  return null;
+};
+
+const LocationPicker: React.FC<LocationPickerProps> = ({ onClose, onLocationSelect, initialPosition, title, autoLocate = true }) => {
   const [position, setPosition] = useState<[number, number]>(initialPosition);
 
+  // Try to auto-locate on mount if enabled
+  const navGeoOnce = useRef(false);
   useEffect(() => {
-    // Only try to get user's location if it's the default initial position
-    if (initialPosition[0] === 51.505 && initialPosition[1] === -0.09) {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    setPosition([pos.coords.latitude, pos.coords.longitude]);
-                    notify.info("Your current location has been set as the starting point.");
-                },
-                () => {
-                    notify.warn("Could not get your location. Using default.");
-                }
-            );
-        }
+    if (!autoLocate) return;
+    if (navGeoOnce.current) return;
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          navGeoOnce.current = true;
+          setPosition([pos.coords.latitude, pos.coords.longitude]);
+        },
+        (err) => {
+          navGeoOnce.current = true;
+          console.debug('Navigator geolocation error:', (err as any)?.message || err);
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
     }
-  }, [initialPosition]);
+  }, []);
 
   const handleLocationSelect = () => {
     onLocationSelect(position[0], position[1]);
@@ -110,21 +139,22 @@ const LocationPicker: React.FC<LocationPickerProps> = ({ onClose, onLocationSele
   }
 
   return (
-    <div className="modal-overlay">
-      <div className="location-picker-content">
+    <div className="location-picker-overlay" onClick={(e)=>{ e.stopPropagation(); onClose(); }} onMouseDown={(e)=> e.stopPropagation()}>
+      <div className="location-picker-content" onClick={(e)=> e.stopPropagation()} onMouseDown={(e)=> e.stopPropagation()}>
         <div className="modal-header">
-          <h3 className="modal-title">Select Warehouse Location</h3>
-          <Button variant="ghost" size="icon" onClick={onClose} className="close-btn">
+          <h3 className="modal-title">{title || 'Select Location'}</h3>
+          <Button variant="ghost" size="icon" onClick={(e)=>{ e.stopPropagation(); onClose(); }} className="close-btn">
             <X size={24} />
           </Button>
         </div>
         <div className="map-container">
-            <MapContainer center={position} zoom={13} style={{ height: '100%', width: '100%' }} key={position.toString()}>
+            <MapContainer center={position} zoom={13} style={{ height: '100%', width: '100%' }}>
                 <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 />
                 <Marker position={position} />
+                <AutoLocate enabled={autoLocate} onSelect={(lat, lng) => setPosition([lat, lng])} />
                 <SearchAndLocate onSelect={(lat, lng) => setPosition([lat, lng])} />
                 <MapEvents onMapClick={handleMapClick} />
             </MapContainer>

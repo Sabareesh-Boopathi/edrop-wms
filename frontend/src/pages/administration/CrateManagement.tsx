@@ -13,6 +13,7 @@ import { Crate, CrateStatus, Warehouse } from '../../types';
 import './CrateManagement.css';
 import EmptyState from '../../components/EmptyState';
 import KpiCard from '../../components/KpiCard';
+import { useAuth } from '../../contexts/AuthContext';
 
 const CrateManagement: React.FC = () => {
   const [crates, setCrates] = useState<Crate[]>([]);
@@ -22,6 +23,9 @@ const CrateManagement: React.FC = () => {
   const [bulkCrates, setBulkCrates] = useState<Crate[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>('');
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+  const mappedWarehouseId = (user?.warehouse_id ?? (typeof window !== 'undefined' ? localStorage.getItem('AUTH_USER_WAREHOUSE_ID') : '') ?? '') as string;
 
   const fetchCrates = async () => {
     try {
@@ -45,6 +49,13 @@ const CrateManagement: React.FC = () => {
     fetchCrates();
     fetchWarehouses();
   }, []);
+
+  // Default selected warehouse based on role
+  useEffect(() => {
+    if (!isAdmin && mappedWarehouseId) {
+      setSelectedWarehouse(String(mappedWarehouseId));
+    }
+  }, [isAdmin, mappedWarehouseId]);
 
   const handleSaveCrate = async (data: { name: string; warehouse_id: string; count: number; type?: "standard" | "refrigerated" | "large"; status?: CrateStatus }) => {
     try {
@@ -189,18 +200,20 @@ const CrateManagement: React.FC = () => {
               </motion.section>
 
               <div className="filter-section">
-                <select
-                  value={selectedWarehouse}
-                  onChange={(e) => setSelectedWarehouse(e.target.value)}
-                  className="warehouse-filter"
-                >
-                  <option value="">All Warehouses</option>
-                  {warehouses.map(warehouse => (
-                    <option key={warehouse.id} value={warehouse.id}>
-                      {warehouse.name}
-                    </option>
-                  ))}
-                </select>
+                {isAdmin ? (
+                  <select
+                    value={selectedWarehouse}
+                    onChange={(e) => setSelectedWarehouse(e.target.value)}
+                    className="warehouse-filter"
+                  >
+                    <option value="">All Warehouses</option>
+                    {warehouses.map(warehouse => (
+                      <option key={warehouse.id} value={warehouse.id}>
+                        {warehouse.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
               </div>
 
               {filteredByWarehouse.length > 0 ? (

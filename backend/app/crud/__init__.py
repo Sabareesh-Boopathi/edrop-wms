@@ -3,9 +3,9 @@
 # e.g., from app import crud; crud.user.get(...)
 
 from .crud_user import user
-from .crud_rwa import rwa
-from .crud_flat import flat
+from .crud_community import community  # Replaces rwa and flat
 from .crud_customer import customer
+from .crud_address import address
 from .crud_vendor import vendor
 from .crud_product import product
 from .crud_warehouse import warehouse

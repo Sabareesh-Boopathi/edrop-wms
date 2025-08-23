@@ -31,6 +31,7 @@ import crateImage from '../assets/crate.png';
 import { Crate, Warehouse, BulkCrate, CrateStatus, CrateType, CRATE_STATUSES, CRATE_TYPES } from '../types';
 import { useConfig } from '../contexts/ConfigContext';
 import { getWarehouseConfig } from '../services/configService';
+import { useAuth } from '../contexts/AuthContext';
 
 interface CrateEditorProps {
   warehouses: Warehouse[];
@@ -50,10 +51,13 @@ const CrateEditor: React.FC<CrateEditorProps> = ({
     onPrintAll
 }) => {
   const { config } = useConfig();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+  const mappedWarehouseId = (user?.warehouse_id ?? (typeof window !== 'undefined' ? localStorage.getItem('AUTH_USER_WAREHOUSE_ID') : '') ?? '') as string;
   const defaultType = (config.defaultCrateSize as CrateType) || 'standard';
   const defaultStatus: CrateStatus = (config.defaultCrateStatus as CrateStatus) || 'inactive';
 
-  const [warehouseId, setWarehouseId] = useState(crate ? crate.warehouse_id : '');
+  const [warehouseId, setWarehouseId] = useState(crate ? crate.warehouse_id : (isAdmin ? '' : String(mappedWarehouseId || '')));
   const [name, setName] = useState(crate ? crate.name : 'Auto-generated');
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [count, setCount] = useState(1);
@@ -103,6 +107,16 @@ const CrateEditor: React.FC<CrateEditorProps> = ({
       if (!warehouseId) setName('Auto-generated');
     }
   }, [warehouseId, crate]);
+
+  // Ensure warehouseId defaults based on role and available list
+  useEffect(() => {
+    if (crate) return; // keep existing crate's warehouse
+    if (!isAdmin) {
+      setWarehouseId((prev) => prev || String(mappedWarehouseId || ''));
+    } else if (!warehouseId && warehouses && warehouses.length) {
+      setWarehouseId(String(warehouses[0].id));
+    }
+  }, [isAdmin, mappedWarehouseId, warehouses, crate, warehouseId]);
   const labelRef = useRef<HTMLDivElement>(null);
   // Print handler for the label card
   const handlePrint = () => {
@@ -187,6 +201,7 @@ const CrateEditor: React.FC<CrateEditorProps> = ({
               id="warehouse-select" 
               value={warehouseId} 
               onChange={(e) => setWarehouseId(e.target.value)}
+              disabled={!isAdmin}
               className="select"
             >
               <option value="" disabled>Select a warehouse</option>
@@ -196,6 +211,7 @@ const CrateEditor: React.FC<CrateEditorProps> = ({
                 </option>
               ))}
             </select>
+            {!isAdmin && <div className="hint" style={{fontSize:12,color:'var(--color-text-muted)'}}>Only admins can change warehouse.</div>}
           </div>
           {isEditMode && (
             <>

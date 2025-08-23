@@ -11,13 +11,15 @@ import { StatusChip } from '../../components/inbound/StatusChip';
 import DeltaTime from '../../components/inbound/DeltaTime';
 import { progressReceipt, autoAllocateReceiptBins, reassignLineBin, clearLineBin } from '../../services/inboundService';
 import * as notify from '../../lib/notify';
+import LoadingOverlay from '../../components/LoadingOverlay';
+import { formatBinCode, isRackAvailable, isBinAvailable, getAllocationStatus } from '../../utils/binUtils';
 
 // Receipts eligible for bin allocation are those that completed QC and moved to ALLOCATED
 const eligibleStatuses: Array<Receipt['status']> = ['ALLOCATED'];
 
 const BinAllocation: React.FC = () => {
   const { receipts, kpis, loading, error, reload, setFilter, filter } = useInboundData();
-  const { warehouses, warehouseId, setWarehouseId } = useWarehouseSelection();
+  const { warehouses, warehouseId, setWarehouseId, allowSelection } = useWarehouseSelection();
   const [search, setSearch] = useState(filter.search || '');
   const [show, setShow] = useState<Receipt | null>(null);
   const [page, setPage] = useState(1);
@@ -43,16 +45,26 @@ const BinAllocation: React.FC = () => {
           <h1>Bin Allocation</h1>
           <p>Assign received items to warehouse bins before putaway.</p>
         </div>
-        <div className="inline-actions">
-          <button
-            className="icon-btn"
-            title={loading ? 'Refreshing…' : 'Refresh'}
-            aria-label="Refresh"
-            onClick={reload}
-            disabled={loading}
-          >
-            <RotateCw size={18} />
-          </button>
+        <div style={{display:'flex', gap:12, alignItems:'flex-end', flexWrap:'wrap'}}>
+          {allowSelection && (
+            <div className="form-field" style={{minWidth:220}}>
+              <label>Warehouse</label>
+              <select value={warehouseId} onChange={e=>setWarehouseId(e.target.value)}>
+                {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+              </select>
+            </div>
+          )}
+          <div className="inline-actions">
+            <button
+              className="icon-btn"
+              title={loading ? 'Refreshing…' : 'Refresh'}
+              aria-label="Refresh"
+              onClick={reload}
+              disabled={loading}
+            >
+              <RotateCw size={18} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -65,26 +77,19 @@ const BinAllocation: React.FC = () => {
             <KpiCard icon={<CheckCircle2 className="icon" />} title="Completed Today" value={kpis.completedToday} variant="indigo" />
           </>
         ) : (
-          <div className="empty-hint">Loading KPIs…</div>
+          <div className="empty-hint" style={{gridColumn:'1 / -1'}}>
+            <LoadingOverlay label="Loading KPIs" />
+          </div>
         )}
       </div>
 
-      <TableCard
+  <TableCard
         variant="inbound"
         title={(
           <>
             Awaiting Allocation
-            {loading && <span style={{fontSize:12, marginLeft:8}}>Loading…</span>}
             {error && <span style={{color:'var(--color-error)', marginLeft:8}}>{error}</span>}
           </>
-        )}
-        warehouse={(
-          <div className="form-field" style={{maxWidth:240}}>
-            <label>Warehouse</label>
-            <select value={warehouseId} onChange={e=>setWarehouseId(e.target.value)}>
-              {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-            </select>
-          </div>
         )}
         search={(
           <div className="form-field" style={{maxWidth:320}}>
@@ -135,16 +140,20 @@ const BinAllocation: React.FC = () => {
           </>
         ) : undefined}
       >
+        {loading && (
+          <LoadingOverlay label="Loading receipts" />
+        )}
         {list.length === 0 && !loading ? (
           <EmptyState title="Nothing to allocate" message="Receipts will appear here once QC is completed." />
         ) : (
           <table className="inbound-table">
             <thead>
               <tr>
-                <th>ID</th>
+                <th>Receipt</th>
                 <th>Vendor</th>
                 <th>Status</th>
                 <th>Lines</th>
+                <th>Allocation</th>
                 <th>Unassigned</th>
                 <th>Planned</th>
                 <th>Δ Time</th>
@@ -154,12 +163,17 @@ const BinAllocation: React.FC = () => {
             <tbody>
               {paged.map(r => {
                 const unassigned = r.lines.filter(l => !l.bin_id).length;
+                const allocationStatus = getAllocationStatus(r.lines);
+                const allocationColor = allocationStatus === 'Allocated' ? 'var(--color-success)' 
+                  : allocationStatus === 'Partial' ? 'var(--color-warning)' 
+                  : 'var(--color-text-soft)';
                 return (
                   <tr key={r.id} className="appearing">
-                    <td>{r.id}</td>
+                    <td>{r.code || r.id}</td>
                     <td>{r.vendor_name} ({r.vendor_type})</td>
                     <td><StatusChip status={r.status} /></td>
                     <td>{r.lines.length}</td>
+                    <td style={{color: allocationColor}}>{allocationStatus}</td>
                     <td style={{color: unassigned>0 ? 'var(--color-warning)' : 'var(--color-text-soft)'}}>{unassigned}</td>
                     <td>{r.planned_arrival ? new Date(r.planned_arrival).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '-'}</td>
                     <td><DeltaTime receipt={r} refreshMs={30000} /></td>
@@ -261,7 +275,11 @@ const AllocateModal: React.FC<{ receipt: Receipt; onClose: ()=>void; onSaved: ()
                 <tr key={l.id}>
                   <td>{l.product_name || l.customer_name || l.product_sku}</td>
                   <td>{l.quantity}</td>
-                  <td style={{color: l.bin_id ? 'inherit' : 'var(--color-warning)'}}>{l.bin_id || 'Unassigned'}</td>
+                  <td style={{color: l.bin_id ? 'inherit' : 'var(--color-warning)'}}>
+                    {l.bin_id ? (
+                      l.bin_code && l.bin_code.includes('-') ? l.bin_code : (l.bin_id || 'Assigned')
+                    ) : 'Unassigned'}
+                  </td>
                   <td style={{textAlign:'right'}}>
                     <div style={{display:'flex', gap:8, justifyContent:'flex-end'}}>
                       <button className="btn-outline-token" onClick={()=>doReassign(l.id)} disabled={saving}>Reassign</button>

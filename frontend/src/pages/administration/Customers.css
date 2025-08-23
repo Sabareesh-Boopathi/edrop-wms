@@ -1,0 +1,65 @@
+/* Inbound Operations Shared Styles (tokenized) */
+@import '../../theme/tokens.css';
+@import '../../theme/utilities.css';
+
+/* Customers page scoped styles aligned with Inbound.css */
+
+.contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.row-actions .action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+}
+
+.action-link.success { color: var(--color-success); }
+.action-link.success:hover { background: color-mix(in srgb, var(--soft-success-bg) 60%, transparent); border-color: var(--soft-success-border); }
+.action-link.danger { color: var(--color-error); }
+.action-link.danger:hover { background: color-mix(in srgb, var(--soft-error-bg) 60%, transparent); border-color: var(--soft-error-border); }
+
+/* code-style badges if needed later */
+.badge-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  background: color-mix(in srgb, var(--color-bg) 65%, var(--color-surface));
+  border: 1px solid var(--color-border);
+  font-size: 12px; padding: 2px 8px; border-radius: 8px;
+}
+
+/* Normalize field heights in Customers modal so inputs and selects match */
+.inbound-modal .form-field input,
+.inbound-modal .form-field select,
+.inbound-modal .form-field textarea {
+  height: var(--control-height-md);
+  line-height: 1.2;
+  padding: var(--control-padding-y) var(--control-padding-x);
+  box-sizing: border-box;
+}
+
+/* Textarea naturally grows; keep min height but align with tokens */
+.inbound-modal .form-field textarea { min-height: 72px; height: auto; }
+
+/* Enhanced table styles to mirror Communities */
+.table-compact thead th { padding-top: 10px; padding-bottom: 10px; }
+.table-compact tbody td { padding-top: 10px; padding-bottom: 10px; }
+.customers-table tbody tr:hover { background: color-mix(in srgb, var(--color-primary) 6%, transparent); }
+
+.name-cell { display:flex; gap:10px; align-items:flex-start; }
+.name-avatar { width:28px; height:28px; border-radius:50%; display:grid; place-items:center; background: var(--color-surface-alt); border:1px solid var(--color-border); color: var(--color-text-soft); }
+.name-text { display:flex; flex-direction:column; gap:2px; }
+.name-primary { font-weight:600; }
+.name-secondary { font-size:12px; color: var(--color-text-muted); }
+
+.meta-chips { display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
+.chip { display:inline-flex; align-items:center; gap:6px; font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid var(--color-border); }
+.chip-muted { background: color-mix(in srgb, var(--color-bg) 65%, var(--color-surface)); color: var(--color-text-soft); }

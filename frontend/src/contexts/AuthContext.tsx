@@ -6,12 +6,14 @@ import api, { refreshToken } from '../services/api';
 import { throttle } from 'lodash';
 import { useConfig } from './ConfigContext';
 
+// Matches backend /users/me schema minimally for our needs
 interface User {
-  id: number;
+  id: string;
   email: string;
-  full_name: string | null;
-  is_active: boolean;
-  is_superuser: boolean;
+  name?: string | null;
+  role: 'ADMIN' | 'MANAGER' | 'OPERATOR' | 'VIEWER';
+  status?: 'ACTIVE' | 'INACTIVE' | 'PENDING';
+  warehouse_id?: string | null;
 }
 
 interface AuthContextType {
@@ -20,6 +22,12 @@ interface AuthContextType {
   login: (token: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  // Role helpers
+  isAdmin: boolean;
+  isManager: boolean;
+  isOperator: boolean;
+  isViewer: boolean;
+  isReadOnly: boolean; // true for VIEWER
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -119,6 +127,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const response = await api.get('/users/me');
       setUser(response.data);
+  try {
+        localStorage.setItem('AUTH_USER_ROLE', response.data?.role || '');
+        localStorage.setItem('AUTH_USER_WAREHOUSE_ID', response.data?.warehouse_id || '');
+  } catch (e) { /* ignore storage errors */ }
       setIsAuthenticated(true);
     } catch (error) {
       console.error('Failed to fetch user profile, logging out.', error);
@@ -138,6 +150,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = () => {
     localStorage.removeItem(AUTH_TOKEN_KEY);
+  try {
+      localStorage.removeItem('AUTH_USER_ROLE');
+      localStorage.removeItem('AUTH_USER_WAREHOUSE_ID');
+  } catch (e) { /* ignore storage errors */ }
     setUser(null);
     setIsAuthenticated(false);
     delete (api.defaults.headers as any).common?.['Authorization'];
@@ -147,7 +163,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   return (
     <>
-      <AuthContext.Provider value={{ isAuthenticated, user, login, logout, isLoading }}>
+      <AuthContext.Provider
+        value={{
+          isAuthenticated,
+          user,
+          login,
+          logout,
+          isLoading,
+          isAdmin: user?.role === 'ADMIN',
+          isManager: user?.role === 'MANAGER',
+          isOperator: user?.role === 'OPERATOR',
+          isViewer: user?.role === 'VIEWER',
+          isReadOnly: user?.role === 'VIEWER',
+        }}
+      >
         {children}
       </AuthContext.Provider>
       {showExpiryModal && (

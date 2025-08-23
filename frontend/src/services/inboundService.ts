@@ -102,3 +102,13 @@ export async function computeKpis(): Promise<GoodsInKpis> {
     binsAllocated: data.binsAllocated ?? 0,
   }
 }
+
+export async function autoCreateReceipt(vendor_id: string, warehouse_id: string): Promise<Receipt> {
+  const res = await api.post('/inbound/receipts:auto-create', { vendor_id, warehouse_id })
+  return res.data
+}
+
+export async function autoCreateReceiptsBatch(warehouse_id: string): Promise<Receipt[]> {
+  const res = await api.post('/inbound/receipts:auto-create-batch', { warehouse_id })
+  return res.data
+}

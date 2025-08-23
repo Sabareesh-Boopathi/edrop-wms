@@ -75,9 +75,15 @@ def put_warehouse_config(
 def get_system_audit(
     limit: int = 100,
     db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_active_superuser),
+    current_user: User = Depends(deps.get_current_active_user),
 ):
-    records = crud_audit.list_recent(db, limit=limit)
+    # Role handling: ADMIN full; MANAGER scoped; VIEWER/OPERATOR denied
+    role = str(getattr(current_user, "role", "")).upper()
+    if role not in {"ADMIN", "MANAGER"}:
+        raise HTTPException(status_code=403, detail="Not authorized to view audit logs")
+
+    warehouse_id = getattr(current_user, "warehouse_id", None)
+    records = crud_audit.list_scoped(db, limit=limit, role=role, warehouse_id=str(warehouse_id) if warehouse_id else None)
     result = []
     for rec in records:
         # Convert UUID fields to str for Pydantic

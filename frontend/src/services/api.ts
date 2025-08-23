@@ -91,6 +91,21 @@ api.interceptors.request.use(
       config.headers['Authorization'] = `Bearer ${token}`;
       schedulePreExpiryWarning(token);
     }
+    // Enforce client-side read-only for VIEWER
+    try {
+      const role = (localStorage.getItem('AUTH_USER_ROLE') || '').toUpperCase();
+      const method = (config.method || 'get').toUpperCase();
+      if (role === 'VIEWER' && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+        // Allow auth endpoints
+        if (!isPublic) {
+          return Promise.reject({
+            isAxiosError: true,
+            response: { status: 403, data: { detail: 'VIEWER cannot modify data' } },
+            config,
+          });
+        }
+      }
+  } catch (e) { /* ignore role check errors */ }
     return config;
   },
   (error) => Promise.reject(error)

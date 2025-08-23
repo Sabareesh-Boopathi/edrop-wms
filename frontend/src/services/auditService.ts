@@ -8,6 +8,8 @@ export interface AuditChangeEntry {
 export interface AuditLogItem {
   id: string;
   actor_user_id: string;
+  actor_name?: string;
+  actor_role?: string;
   entity_type: string;
   entity_id?: string | null;
   action: string;

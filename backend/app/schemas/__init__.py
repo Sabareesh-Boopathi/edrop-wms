@@ -1,8 +1,8 @@
 # filepath: c:\Users\priya\Projects\eDrop-UrbanHive\edrop-wms\backend\app\schemas\__init__.py
 from .token import Token, TokenPayload
 from .user import User, UserCreate, UserUpdate
-from .rwa import RWA, RWACreate, RWAUpdate
-from .flat import Flat, FlatCreate, FlatUpdate
+from .community import Community, CommunityCreate, CommunityUpdate  # Replaces RWA and Flat
+from .address import Address, AddressCreate, AddressUpdate
 from .customer import Customer, CustomerCreate, CustomerUpdate
 from .vendor import Vendor, VendorCreate, VendorUpdate, VendorSummary
 from .product import Product, ProductCreate, ProductUpdate

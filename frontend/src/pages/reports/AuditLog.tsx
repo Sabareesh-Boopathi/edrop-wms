@@ -1,19 +1,20 @@
 import React from 'react';
 import { getSystemAudit, AuditLogItem } from '../../services/auditService';
-import { getUsers } from '../../services/userService';
-import { UserData, UserSchema } from '../administration/UsersAndRoles';
+// actor_name and actor_role now come from backend; no users cross-reference needed
 import { useConfig } from '../../contexts/ConfigContext';
-import { Link } from 'react-router-dom';
 import EmptyState from '../../components/EmptyState';
-import { Filter as FilterIcon, Search as SearchIcon, Cog } from 'lucide-react';
+import TableCard from '../../components/table/TableCard';
+import { Filter as FilterIcon, Search as SearchIcon, Cog, RefreshCw, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import * as notify from '../../lib/notify';
-import '../administration/WarehouseManagement.css';
-import './AuditLog.css';
+import { useAuth } from '../../contexts/AuthContext';
+import LoadingOverlay from '../../components/LoadingOverlay';
 
 const ENTITY_BADGE: Record<string, string> = {
   system_config: 'badge badge--system',
   warehouse_config: 'badge badge--warehouse',
 };
+
+const PAGE_SIZE = 25;
 
 const AuditLog: React.FC = () => {
   const [items, setItems] = React.useState<AuditLogItem[]>([]);
@@ -21,46 +22,59 @@ const AuditLog: React.FC = () => {
   const [error, setError] = React.useState<string | null>(null);
   const [limit, setLimit] = React.useState(100);
   const [q, setQ] = React.useState('');
-  const [users, setUsers] = React.useState<UserData[]>([]);
-  const [sortBy, setSortBy] = React.useState<'date' | 'actor'>('date');
+  const [sortKey, setSortKey] = React.useState<'created_at' | 'actor' | 'role' | 'entity_type' | 'action'>('created_at');
+  const [sortDir, setSortDir] = React.useState<'asc' | 'desc'>('desc');
   const [actionFilter, setActionFilter] = React.useState<string>('all');
   const [entityFilter, setEntityFilter] = React.useState<string>('all');
   const [actorFilter, setActorFilter] = React.useState<string>('all');
   const [dateFilter, setDateFilter] = React.useState<string>('');
+  const [page, setPage] = React.useState(1);
   const { formatDateTime } = useConfig();
+  const { user } = useAuth();
+  const role = user?.role;
+  const managerWarehouseId = (role === 'MANAGER') ? (user?.warehouse_id ?? (typeof window !== 'undefined' ? localStorage.getItem('AUTH_USER_WAREHOUSE_ID') : '') ?? '') as string : '';
 
   const load = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const data = await getSystemAudit(limit);
-      setItems(data);
+      // If MANAGER, scope client-side to their warehouse and common entities
+      if (role === 'MANAGER' && managerWarehouseId) {
+        const scoped = data.filter((it) => {
+          // include system-level configs
+          if (it.entity_type === 'system_config') return true;
+          // include vendor/store/products (common once per user request)
+          if (['vendor','store','product','products','stores','vendors'].includes(it.entity_type)) return true;
+          // include warehouse_config for their warehouse only
+          if (it.entity_type === 'warehouse_config') {
+            return String(it.entity_id || '') === String(managerWarehouseId);
+          }
+          // otherwise exclude
+          return false;
+        });
+        setItems(scoped);
+      } else {
+        setItems(data);
+      }
     } catch (e: any) {
       setError(e?.response?.data?.detail || 'Failed to load audit logs');
     } finally {
       setLoading(false);
     }
-  }, [limit]);
+  }, [limit, role, managerWarehouseId]);
 
-  React.useEffect(() => {
-    load();
-    getUsers().then(setUsers).catch(() => {
-      notify.error('Failed to fetch users');
-    });
-  }, [load]);
+  React.useEffect(() => { load(); }, [load]);
 
   // Map userId to name for fast lookup
-  const userMap = React.useMemo(() => {
-    const map: Record<string, string> = {};
-    users.forEach(u => { map[u.id] = u.name; });
-    return map;
-  }, [users]);
+  const getActorName = (it: AuditLogItem) => it.actor_name || it.actor_user_id;
+  const getActorRole = (it: AuditLogItem) => (it.actor_role || '').toUpperCase();
 
   const filtered = React.useMemo(() => {
     let arr = items;
     if (actionFilter !== 'all') arr = arr.filter(it => it.action === actionFilter);
     if (entityFilter !== 'all') arr = arr.filter(it => it.entity_type === entityFilter);
-    if (actorFilter !== 'all') arr = arr.filter(it => it.actor_user_id === actorFilter);
+  if (actorFilter !== 'all') arr = arr.filter(it => (it.actor_name || it.actor_user_id) === actorFilter);
     if (dateFilter) {
       // dateFilter is in 'YYYY-MM-DDTHH:mm' format
       const filterDate = new Date(dateFilter);
@@ -73,7 +87,7 @@ const AuditLog: React.FC = () => {
     if (q.trim()) {
       const term = q.toLowerCase();
       arr = arr.filter((it) => {
-        const base = `${userMap[it.actor_user_id] || it.actor_user_id} ${it.entity_type} ${it.entity_id || ''} ${it.action}`.toLowerCase();
+  const base = `${getActorName(it)} ${getActorRole(it)} ${it.entity_type} ${it.entity_id || ''} ${it.action}`.toLowerCase();
         const changeStr = Object.entries(it.changes || {})
           .map(([k, v]) => `${k}:${JSON.stringify((v as any).before)}>${JSON.stringify((v as any).after)}`)
           .join(' ')
@@ -81,19 +95,44 @@ const AuditLog: React.FC = () => {
         return base.includes(term) || changeStr.includes(term);
       });
     }
-    if (sortBy === 'actor') {
-      arr = [...arr].sort((a, b) => (userMap[a.actor_user_id] || '').localeCompare(userMap[b.actor_user_id] || ''));
-    } else {
-      arr = [...arr].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    }
-    return arr;
-  }, [items, q, userMap, sortBy, actionFilter, entityFilter, actorFilter, dateFilter]);
+    const sorted = [...arr].sort((a, b) => {
+      let av: string | number = '';
+      let bv: string | number = '';
+      if (sortKey === 'created_at') {
+        av = new Date(a.created_at).getTime();
+        bv = new Date(b.created_at).getTime();
+      } else if (sortKey === 'actor') {
+        av = getActorName(a);
+        bv = getActorName(b);
+      } else if (sortKey === 'role') {
+        av = getActorRole(a);
+        bv = getActorRole(b);
+      } else if (sortKey === 'entity_type') {
+        av = a.entity_type || '';
+        bv = b.entity_type || '';
+      } else if (sortKey === 'action') {
+        av = a.action || '';
+        bv = b.action || '';
+      }
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * (sortDir === 'asc' ? 1 : -1);
+      return String(av).localeCompare(String(bv)) * (sortDir === 'asc' ? 1 : -1);
+    });
+    return sorted;
+  }, [items, q, sortKey, sortDir, actionFilter, entityFilter, actorFilter, dateFilter]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paged = React.useMemo(() => {
+    const s = (page - 1) * PAGE_SIZE;
+    return filtered.slice(s, s + PAGE_SIZE);
+  }, [filtered, page]);
+  React.useEffect(() => { if (page > pageCount) setPage(pageCount); }, [pageCount, page]);
 
   const exportCsv = React.useCallback(() => {
     const header = ['when','actor_user_id','entity_type','entity_id','action','field','before','after'];
     const rows: string[][] = [];
     filtered.forEach((it) => {
-      const base = [formatDateTime(it.created_at), it.actor_user_id, it.entity_type, it.entity_id || '', it.action];
+      const actorName = getActorName(it);
+      const base = [formatDateTime(it.created_at), actorName, it.entity_type, it.entity_id || '', it.action];
       const changes = Object.entries(it.changes || {});
       if (changes.length === 0) {
         rows.push([...base, '', '', '']);
@@ -117,168 +156,141 @@ const AuditLog: React.FC = () => {
     URL.revokeObjectURL(url);
   }, [filtered, formatDateTime]);
 
+  const sortBy = (key: typeof sortKey) => {
+    setPage(1);
+    setSortKey(prev => {
+      if (prev === key) {
+        setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+        return prev;
+      }
+      setSortDir('asc');
+      return key;
+    });
+  };
+
   return (
-    <div className="page-content">
-      {/* Header styled like WarehouseManagement */}
-      <header className="header">
-        <div className="header-text">
-          <h1>Audit Log</h1>
-          <p>Recent configuration changes with field-level diffs.</p>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn-outline-token" onClick={exportCsv} disabled={loading}>Export CSV</button>
-          <button className="btn-primary-token" onClick={load} disabled={loading}>Refresh</button>
-        </div>
-      </header>
-      {/* Filters bar below title */}
-      <div className="filters-bar" style={{ marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 16, color: 'var(--color-text-soft)' }}>
-          <FilterIcon size={18} style={{ marginRight: 2, color: 'var(--color-text-subtle)' }} /> Filters
-        </div>
-        <div className="filter-item select">
-          <select value={actionFilter} onChange={e => setActionFilter(e.target.value)}>
-            <option value="all">All Actions</option>
-            <option value="update">Update</option>
-            {/* Add more actions here if needed */}
-          </select>
-        </div>
-        <div className="filter-item select">
-          <select value={entityFilter} onChange={e => setEntityFilter(e.target.value)}>
-            <option value="all">All Entities</option>
-            <option value="system_config">System Config</option>
-            <option value="warehouse_config">Warehouse Config</option>
-          </select>
-        </div>
-        <div className="filter-item select">
-          <select value={actorFilter} onChange={e => setActorFilter(e.target.value)}>
-            <option value="all">All Actors</option>
-            {users.map(u => (
-              <option key={u.id} value={u.id}>{u.name}</option>
-            ))}
-          </select>
-        </div>
-        <div className="filter-item input">
-          <input
-            type="datetime-local"
-            value={dateFilter}
-            onChange={e => setDateFilter(e.target.value)}
-            style={{ minWidth: 180 }}
-          />
-        </div>
-        <div className="filter-item select">
-          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)}>
-            <option value="date">Sort: Date</option>
-            <option value="actor">Sort: Actor</option>
-          </select>
-        </div>
-      </div>
-      <div className="card">
-        {/* Card header: left-aligned search label and bar, right-aligned show filter */}
-        <div className="card-header audit-header" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
-            <span style={{ fontWeight: 500, fontSize: 15, marginRight: 8 }}>Search</span>
-            <div style={{ position: 'relative', width: 220, maxWidth: '100%' }}>
-              <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-subtle)' }}>
-                <SearchIcon size={15} />
-              </span>
-              <input
-                className="search-input"
-                placeholder="actor, entity, field or value…"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                style={{ width: '100%', paddingLeft: 30 }}
-              />
+    <div className="page-container inbound-page">
+      <TableCard
+        variant="inbound"
+        title={<div style={{ display:'flex', alignItems:'center', gap:8 }}><Cog size={18}/> Audit Log</div>}
+        search={
+          <div className="form-field" style={{ maxWidth: 360 }}>
+            <label>Search</label>
+            <div style={{ position:'relative' }}>
+              <SearchIcon size={16} style={{ position:'absolute', left:8, top:'50%', transform:'translateY(-50%)', color:'var(--color-text-subtle)' }}/>
+              <input style={{ paddingLeft: 30 }} placeholder="actor, role, entity, field or value…" value={q} onChange={(e)=>{ setQ(e.target.value); setPage(1); }} />
             </div>
           </div>
-          <div className="input-group" style={{ marginLeft: 24, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <label htmlFor="limit">Show</label>
-            <select
-              id="limit"
-              className="count-select"
-              value={String(limit)}
-              onChange={(e) => setLimit(parseInt(e.target.value, 10))}
-            >
-              <option value="50">50</option>
-              <option value="100">100</option>
-              <option value="250">250</option>
-              <option value="500">500</option>
-            </select>
+        }
+        filters={
+          <>
+            <div className="form-field" style={{ minWidth: 160 }}>
+              <label>Action</label>
+              <select value={actionFilter} onChange={e=>{ setActionFilter(e.target.value); setPage(1); }}>
+                <option value="all">All</option>
+                <option value="update">Update</option>
+              </select>
+            </div>
+            <div className="form-field" style={{ minWidth: 180 }}>
+              <label>Entity</label>
+              <select value={entityFilter} onChange={e=>{ setEntityFilter(e.target.value); setPage(1); }}>
+                <option value="all">All</option>
+                <option value="system_config">System Config</option>
+                <option value="warehouse_config">Warehouse Config</option>
+              </select>
+            </div>
+            <div className="form-field" style={{ minWidth: 200 }}>
+              <label>Actor</label>
+              <input placeholder="Filter by actor" value={actorFilter==='all'?'':actorFilter} onChange={e=>{ setActorFilter(e.target.value || 'all'); setPage(1); }} />
+            </div>
+            <div className="form-field" style={{ minWidth: 200 }}>
+              <label>Since</label>
+              <input type="datetime-local" value={dateFilter} onChange={e=>{ setDateFilter(e.target.value); setPage(1); }} />
+            </div>
+            <div className="form-field" style={{ minWidth: 120 }}>
+              <label>Fetch</label>
+              <select value={String(limit)} onChange={(e)=> setLimit(parseInt(e.target.value, 10))}>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="250">250</option>
+                <option value="500">500</option>
+              </select>
+            </div>
+          </>
+        }
+        actions={
+          <div style={{ display:'inline-flex', gap:8 }}>
+            <button className="icon-btn" onClick={load} title="Refresh" aria-label="Refresh" disabled={loading}><RefreshCw size={16}/></button>
+            <button className="icon-btn" onClick={exportCsv} title="Export CSV" aria-label="Export CSV" disabled={loading}><Download size={16}/></button>
           </div>
+        }
+        footer={
+          <>
+            <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{`Showing ${filtered.length ? Math.min(filtered.length, (page-1)*PAGE_SIZE+1) : 0}-${filtered.length ? Math.min(page*PAGE_SIZE, filtered.length) : 0} of ${filtered.length}`}</span>
+            <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+              <button type="button" className="pager-btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} aria-label="Previous page" title="Previous"><ChevronLeft size={16}/></button>
+              <span style={{ minWidth: 32, textAlign: 'center', fontSize: 12 }}>{page}/{pageCount}</span>
+              <button type="button" className="pager-btn" onClick={() => setPage(p => Math.min(pageCount, p + 1))} disabled={page >= pageCount} aria-label="Next page" title="Next"><ChevronRight size={16}/></button>
+            </div>
+          </>
+        }
+      >
+        {loading && (
+          <LoadingOverlay label="Loading logs" />
+        )}
+        <div style={{ overflowX:'auto' }}>
+          <table className="inbound-table">
+            <thead>
+              <tr>
+                <th><button type="button" className="th-sort" onClick={()=> sortBy('created_at')}>When</button></th>
+                <th><button type="button" className="th-sort" onClick={()=> sortBy('actor')}>Actor</button></th>
+                <th><button type="button" className="th-sort" onClick={()=> sortBy('role')}>Role</button></th>
+                <th><button type="button" className="th-sort" onClick={()=> sortBy('entity_type')}>Entity</button></th>
+                <th><button type="button" className="th-sort" onClick={()=> sortBy('action')}>Action</button></th>
+                <th>Changes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paged.length === 0 && !loading ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-6">
+                    <EmptyState icon={<Cog />} title="No audit entries" message="Change a setting in System Config to generate a log." />
+                  </td>
+                </tr>
+              ) : null}
+              {paged.map((it) => (
+                <tr key={it.id}>
+                  <td className="mono">{formatDateTime(it.created_at)}</td>
+                  <td className="mono subtle">{getActorName(it)}</td>
+                  <td className="mono subtle">{getActorRole(it) || '-'}</td>
+                  <td>
+                    <span className={ENTITY_BADGE[it.entity_type] || 'badge'}>
+                      {it.entity_type.replace('_', ' ')}
+                    </span>
+                    {it.entity_id && (
+                      <span className="entity-id mono">{it.entity_id}</span>
+                    )}
+                  </td>
+                  <td><span className="chip chip--action">{it.action}</span></td>
+                  <td>
+                    <ul className="changes-list">
+                      {Object.entries(it.changes || {}).map(([field, val]) => (
+                        <li key={field}>
+                          <span className="field-name">{field}</span>
+                          <span className="arrow">→</span>
+                          <code className="before-value">{JSON.stringify((val as any).before)}</code>
+                          <span className="arrow">→</span>
+                          <code className="after-value">{JSON.stringify((val as any).after)}</code>
+                        </li>
+                      ))}
+                    </ul>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <div className="card-content">
-          {loading && (
-            <div className="skeleton-table" aria-busy>
-              <div className="skeleton-row" />
-              <div className="skeleton-row" />
-              <div className="skeleton-row" />
-            </div>
-          )}
-          {error && (
-            <div className="error-banner" role="alert" style={{ marginBottom: 8 }}>
-              {error}
-            </div>
-          )}
-          {!loading && !error && (
-            <div className="table-wrapper">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>When</th>
-                    <th>Actor</th>
-                    <th>Entity</th>
-                    <th>Action</th>
-                    <th>Changes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="empty-cell">
-                        <EmptyState
-                          icon={<Cog size={40} strokeWidth={1.5} style={{ color: 'var(--color-text-subtle)' }} />}
-                          title="No audit entries"
-                          message="Tip: Change a setting in System Config to generate a log."
-                          actionLabel="Go to System Config"
-                          onAction={() => window.location.href = '/administration/system-configuration'}
-                        />
-                      </td>
-                    </tr>
-                  ) : (
-                    filtered.map((it) => (
-                      <tr key={it.id}>
-                        <td className="mono">{formatDateTime(it.created_at)}</td>
-                        <td className="mono subtle">{userMap[it.actor_user_id] || <span title={it.actor_user_id}>{it.actor_user_id}</span>}</td>
-                        <td>
-                          <span className={ENTITY_BADGE[it.entity_type] || 'badge'}>
-                            {it.entity_type.replace('_', ' ')}
-                          </span>
-                          {it.entity_id && (
-                            <span className="entity-id mono">{it.entity_id}</span>
-                          )}
-                        </td>
-                        <td><span className="chip chip--action">{it.action}</span></td>
-                        <td>
-                          <ul className="changes-list">
-                            {Object.entries(it.changes || {}).map(([field, val]) => (
-                              <li key={field}>
-                                <span className="field-name">{field}</span>
-                                <span className="arrow">→</span>
-                                <code className="before-value">{JSON.stringify((val as any).before)}</code>
-                                <span className="arrow">→</span>
-                                <code className="after-value">{JSON.stringify((val as any).after)}</code>
-                              </li>
-                            ))}
-                          </ul>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
+      </TableCard>
     </div>
   );
 };

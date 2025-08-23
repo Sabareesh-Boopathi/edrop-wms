@@ -21,8 +21,15 @@ def read_warehouses(
     limit: int = 100,
     current_user: User = Depends(deps.get_current_active_user),
 ):
-    logger.info(f"ℹ️ User '{current_user.id}' listing all warehouses.")
-    return crud_warehouse.warehouse.get_multi(db, skip=skip, limit=limit)
+    logger.info(f"ℹ️ User '{current_user.id}' listing warehouses.")
+    # Admins see all warehouses; non-admins see only their own assigned warehouse
+    role = str(getattr(current_user, "role", "")).upper()
+    if role == "ADMIN":
+        return crud_warehouse.warehouse.get_multi(db, skip=skip, limit=limit)
+    if getattr(current_user, "warehouse_id", None):
+        wh = crud_warehouse.warehouse.get(db, id=current_user.warehouse_id)
+        return [wh] if wh else []
+    return []
 
 @router.post("/", response_model=Warehouse)
 def create_warehouse(

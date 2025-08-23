@@ -7,8 +7,7 @@ from app.db.base_class import Base
 from app.models.user import User
 
 # When you create new models, import them here as well.
-from app.models.rwa import RWA
-from app.models.flat import Flat
+from app.models.community import Community  # Replaces RWA and Flat
 from app.models.customer import Customer
 from app.models.warehouse import Warehouse
 from app.models.product import Product
@@ -28,3 +27,6 @@ from app.models.store_products import StoreProduct
 from app.models.audit_log import AuditLog
 from app.models.inbound_receipt import InboundReceipt
 from app.models.inbound_receipt_line import InboundReceiptLine
+from app.models.vehicle import Vehicle
+from app.models.driver import Driver
+from app.models.route import Route, RouteBin, DispatchLoadingLog

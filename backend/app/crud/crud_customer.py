@@ -31,7 +31,12 @@ class CRUDCustomer(CRUDBase[Customer, CustomerCreate, CustomerUpdate]):
             db.rollback()
             raise e
     
-    def get_by_user_id(self, db: Session, user_id: str) -> Optional[Customer]:
-        return db.query(Customer).filter(Customer.user_id == user_id).first()
+    def get_by_community_id(self, db: Session, community_id: str) -> list[Customer]:
+        """Get all customers in a specific community."""
+        return db.query(Customer).filter(Customer.community_id == community_id).all()
+
+    def get_by_email(self, db: Session, email: str) -> Optional[Customer]:
+        """Get customer by email."""
+        return db.query(Customer).filter(Customer.email == email).first()
 
 customer = CRUDCustomer(Customer)

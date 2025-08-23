@@ -1,30 +1,36 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import RouteBinsCard from '../../components/outbound/RouteBinsCard';
 import EmptyState from '../../components/EmptyState';
 import KpiCard from '../../components/KpiCard';
 import { MapPinned, RefreshCw, Search, Boxes, Route as RouteIcon } from 'lucide-react';
 import '../inbound/Inbound.css';
 import * as notify from '../../lib/notify';
-import { fetchRoutes, forceBinReassign, toggleRouteLock, reoptimizeRoutes, type RouteSummary } from '../../services/outboundService';
 import './outbound.css';
+import { fetchRoutes, forceBinReassign, toggleRouteLock, reoptimizeRoutes, type RouteSummary } from '../../services/outboundService';
+
+type LocalRoute = RouteSummary & { status?: 'open' | 'locked' };
 
 const PAGE_SIZE = 5;
 
 const RouteBinning: React.FC = () => {
   const [loading, setLoading] = useState(false);
-  const [routes, setRoutes] = useState<RouteSummary[]>([]);
+  const [routes, setRoutes] = useState<LocalRoute[]>([]);
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
-    try { setRoutes(await fetchRoutes()); } catch { notify.error('Failed to load routes'); } finally { setLoading(false); }
-  }
-  useEffect(() => {
-    let mounted = true; load();
-    const t = window.setInterval(() => { if (mounted) load(); }, 10000);
-    return () => { mounted = false; window.clearInterval(t); };
+    try {
+      const data = await fetchRoutes();
+      // backend RouteSummary includes auto_slotting and bins; keep optional status for UI
+      setRoutes(data as LocalRoute[]);
+    } catch (e: any) {
+      notify.error(e?.message || 'Failed to load routes');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+  useEffect(() => { void load(); }, [load]);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -42,24 +48,19 @@ const RouteBinning: React.FC = () => {
     return acc;
   }, { capacity: 0, totes: 0 });
   const fillPct = totals.capacity ? Math.round((totals.totes / totals.capacity) * 100) : 0;
-  const unassigned = Math.max(0, 0); // if we track pool of unassigned totes later
+  const unassigned = 0;
 
   const onForceReassign = async (fromBinId: string, toteId: string) => {
-    const toBin = window.prompt(`Move ${toteId} to bin id:`);
-    if (!toBin) return;
-    await forceBinReassign(toteId, toBin);
-    notify.success('Tote moved');
-    load();
+    try { await forceBinReassign(toteId, fromBinId); notify.success(`Reassigned ${toteId} from ${fromBinId}`); void load(); }
+    catch (e: any) { notify.error(e?.message || 'Failed to reassign'); }
   };
   const onToggleLock = async (routeId: string, lock: boolean) => {
-    await toggleRouteLock(routeId, lock);
-    notify.info(lock ? 'Route locked' : 'Route unlocked');
-    load();
+    try { await toggleRouteLock(routeId, lock); notify.info(lock ? `Route ${routeId} locked` : `Route ${routeId} unlocked`); void load(); }
+    catch (e: any) { notify.error(e?.message || 'Failed to toggle lock'); }
   };
   const onReoptimize = async () => {
-    await reoptimizeRoutes();
-    notify.info('Re-optimization triggered');
-    load();
+    try { await reoptimizeRoutes(); notify.info('Re-optimization triggered'); void load(); }
+    catch (e: any) { notify.error(e?.message || 'Failed to re-optimize'); }
   };
 
   return (
@@ -95,12 +96,12 @@ const RouteBinning: React.FC = () => {
       </div>
 
       {/* Content grid */}
-      {paged.length === 0 && !loading ? (
+  {paged.length === 0 && !loading ? (
         <EmptyState icon={<MapPinned />} title="No active routes" message="Configured routes will appear here." actionLabel="Refresh" onAction={load} actionClassName="btn-outline-token" />
       ) : (
         <div style={{ display:'grid', gap:16 }}>
           {paged.map(r => (
-            <RouteBinsCard key={r.route_id} route={r} onForceReassign={onForceReassign} onToggleLock={onToggleLock} />
+            <RouteBinsCard key={r.route_id} route={r as any} onForceReassign={onForceReassign} onToggleLock={onToggleLock} />
           ))}
         </div>
       )}

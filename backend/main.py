@@ -11,6 +11,8 @@ from app.db.session import SessionLocal
 from app.crud.crud_user import user as crud_user
 from app.schemas.user import UserCreate, UserRole, UserStatus
 import logging
+from jose import jwt
+from app.core import security
 
 # Try to import Pydantic v2 core exceptions if available
 try:
@@ -50,6 +52,32 @@ app.add_middleware(
 
 app.include_router(api_router, prefix="/api/v1")
 
+# Global middleware to enforce VIEWER read-only
+@app.middleware("http")
+async def viewer_read_only_middleware(request, call_next):
+    try:
+        # Only enforce for modifying methods and API routes
+        if request.method.upper() in {"POST", "PUT", "PATCH", "DELETE"} and str(request.url.path).startswith("/api/v1"):
+            # Allow auth endpoints
+            if request.url.path.endswith("/login/access-token") or request.url.path.endswith("/login/refresh-token"):
+                return await call_next(request)
+            auth = request.headers.get("Authorization", "")
+            if auth.lower().startswith("bearer "):
+                token = auth.split(" ", 1)[1]
+                try:
+                    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[security.ALGORITHM])
+                    role = str(payload.get("role") or payload.get("rol") or "").upper()
+                    # If token doesn't include role, downstream deps will catch; be lenient here
+                    if role == "VIEWER":
+                        return JSONResponse(status_code=403, content={"detail": "VIEWER cannot modify data"})
+                except Exception:
+                    # If token invalid, let downstream auth handlers respond
+                    pass
+        return await call_next(request)
+    except Exception as e:
+        logger.exception("Middleware error: %s", e)
+        return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
 # Bootstrap superuser on startup (idempotent)
 @app.on_event("startup")
 def create_superuser_if_missing():
@@ -60,16 +88,19 @@ def create_superuser_if_missing():
         existing = crud_user.get_by_email(db, email=settings.SUPERUSER_EMAIL)
         if existing:
             return
+        # Superuser is always a global ADMIN and does not belong to any warehouse
         obj = UserCreate(
             email=settings.SUPERUSER_EMAIL,
             name=settings.SUPERUSER_NAME or "Admin",
             password=settings.SUPERUSER_PASSWORD,
-            role=UserRole(settings.SUPERUSER_ROLE.upper()),
-            status=UserStatus(settings.SUPERUSER_STATUS.upper()),
+            role=UserRole.ADMIN,
+            status=UserStatus.ACTIVE,
             phone_number=settings.SUPERUSER_PHONE,
             address=settings.SUPERUSER_ADDRESS,
+            warehouse_id=None,
         )
-        crud_user.create(db, obj_in=obj)
+        created = crud_user.create(db, obj_in=obj)
+        logger.info("Superuser created: %s (role=%s, warehouse_id=%s)", obj.email, "ADMIN", None)
     finally:
         db.close()
 

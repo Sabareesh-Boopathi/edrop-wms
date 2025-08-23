@@ -26,6 +26,7 @@ class ReceiptLineBase(BaseModel):
     damaged_origin: Optional[Literal['UNLOADING','WAREHOUSE']] = None
     bin_id: Optional[uuid.UUID] = None
     notes: Optional[str] = None
+    bin_code: Optional[str] = None
 
 class ReceiptLineCreate(ReceiptLineBase):
     pass
@@ -91,3 +92,11 @@ class GoodsInKpis(BaseModel):
     skuReceipts: int
     flatReceipts: int
     binsAllocated: int
+
+# Auto-create payload
+class AutoCreatePayload(BaseModel):
+    vendor_id: uuid.UUID
+    warehouse_id: uuid.UUID
+
+class AutoCreateBatchPayload(BaseModel):
+    warehouse_id: uuid.UUID
