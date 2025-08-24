@@ -8,6 +8,9 @@ from app.models.rack import Rack as RackModel
 from app.models.bin import Bin as BinModel
 from app.schemas.rack import RackCreateRequest, RackUpdate
 from app.crud.crud_config import config as cfg
+from app.schemas.bin import BinCreate
+from app.crud import crud_bin
+from app.services.bin_code import build_bin_code
 
 class CRUDRack(CRUDBase[RackModel, RackCreateRequest, RackUpdate]):
     def get_by_warehouse(self, db: Session, warehouse_id) -> List[RackModel]:
@@ -32,6 +35,25 @@ class CRUDRack(CRUDBase[RackModel, RackCreateRequest, RackUpdate]):
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
+        # Auto-materialize full bin grid for this rack
+        stacks = int(db_obj.stacks or 0)
+        bps = int(db_obj.bins_per_stack or 0)
+        if stacks > 0 and bps > 0:
+            for s in range(stacks):
+                for b in range(bps):
+                    code = build_bin_code(db, db_obj.id, s, b)
+                    payload = BinCreate(
+                        rack_id=db_obj.id,
+                        stack_index=s,
+                        bin_index=b,
+                        code=code,
+                        status="empty",
+                        crate_id=None,
+                        product_id=None,
+                        store_product_id=None,
+                        quantity=0,
+                    )
+                    crud_bin.bin.create(db, obj_in=payload)
         return db_obj
 
     def with_stats(self, db: Session, rack: RackModel) -> dict:

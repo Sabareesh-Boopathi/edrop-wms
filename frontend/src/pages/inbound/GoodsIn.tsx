@@ -510,7 +510,7 @@ function GoodsIn(): JSX.Element {
                   <label>Planned Arrival Date & Time</label>
                   <input id="plannedArrival" type="datetime-local" />
                   <div style={{fontSize:11, color:'var(--color-text-subtle)', marginTop:4}}>
-                    ⏰ Time will be saved exactly as entered (no timezone conversion)
+                    ⏰ Time stored in current system time zone.
                   </div>
                 </div>
                 <div className="form-field">

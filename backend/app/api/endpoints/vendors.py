@@ -5,6 +5,10 @@ from sqlalchemy.orm import Session
 import uuid
 
 from app import crud, models, schemas
+from app.core.privacy import mask_contact_dict
+from app.schemas.privacy import UnmaskRequest, UnmaskResponse
+from app.models.audit_log import AuditLog
+from datetime import datetime
 from app.api import deps
 
 logger = logging.getLogger("app.api.endpoints.vendors")
@@ -25,7 +29,8 @@ def read_own_vendor_profile(
         logger.warning(f"❌ Vendor profile not found for user {current_user.email} (id: {current_user.id})")
         raise HTTPException(status_code=404, detail="Vendor profile not found for this user.")
     logger.info(f"✅ Vendor profile found for user {current_user.email} (id: {current_user.id})")
-    return vendor
+    d = schemas.Vendor.model_validate(vendor).model_dump()
+    return mask_contact_dict(d, phone_key="phone_number", email_key="email")
 
 @router.get("/summary", response_model=List[schemas.VendorSummary])
 def list_vendor_summaries(
@@ -50,8 +55,8 @@ def list_vendor_summaries(
             schemas.VendorSummary(
                 id=v.id,
                 business_name=v.business_name,
-                email=v.email,
-                phone_number=v.phone_number,
+                email=mask_contact_dict({"email": v.email}).get("email"),
+                phone_number=mask_contact_dict({"phone_number": v.phone_number}).get("phone_number"),
                 vendor_type=v.vendor_type,
                 vendor_status=v.vendor_status,
                 store_count=store_count,
@@ -75,7 +80,8 @@ def read_vendor_by_id(
         logger.warning(f"❌ Vendor profile not found for id: {vendor_id}")
         raise HTTPException(status_code=404, detail="Vendor not found.")
     logger.info(f"✅ Vendor profile found for id: {vendor_id}")
-    return vendor
+    d = schemas.Vendor.model_validate(vendor).model_dump()
+    return mask_contact_dict(d, phone_key="phone_number", email_key="email")
 
 @router.post("/", response_model=schemas.Vendor)
 def create_vendor_profile(
@@ -103,7 +109,12 @@ def read_vendors(
     logger.info(f"🏪 Fetching all vendors. skip={skip}, limit={limit}")
     vendors = crud.vendor.get_multi(db, skip=skip, limit=limit)
     logger.info(f"✅ {len(vendors)} vendors returned.")
-    return vendors
+    masked = []
+    for v in vendors:
+        d = schemas.Vendor.model_validate(v).model_dump()
+        d = mask_contact_dict(d, phone_key="phone_number", email_key="email")
+        masked.append(d)
+    return masked
 
 @router.put("/{id}", response_model=schemas.Vendor)
 def update_vendor(
@@ -142,6 +153,37 @@ def delete_vendor(
     deleted_vendor = crud.vendor.remove(db, id=vendor_id)
     logger.info(f"✅ Vendor profile {vendor_id} deleted successfully by admin {current_user.email}.")
     return deleted_vendor
+
+
+@router.post("/{vendor_id}:unmask", response_model=UnmaskResponse)
+def unmask_vendor_contact(
+    vendor_id: str,
+    payload: UnmaskRequest,
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_active_user),
+):
+    v = crud.vendor.get(db, id=vendor_id)
+    if not v:
+        raise HTTPException(status_code=404, detail="Vendor not found")
+    db.add(
+        AuditLog(
+            actor_user_id=current_user.id,
+            entity_type="vendor_contact_unmask",
+            entity_id=str(vendor_id),
+            action="unmask",
+            changes={"reason": {"before": None, "after": payload.reason}},
+        )
+    )
+    db.commit()
+    return UnmaskResponse(
+        id=v.id,
+        name=v.business_name,
+        phone_number=v.phone_number,
+        email=v.email,
+        entity_type="vendor",
+        entity_id=str(vendor_id),
+    revealed_at=datetime.utcnow(),
+    )
 
 @router.get("/{vendor_id}/stores", response_model=List[schemas.Store])
 def get_vendor_stores(

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Rack, Warehouse } from 'types';
 import './RackDetailModal.css';
 import { useForm } from 'react-hook-form';
@@ -138,9 +139,9 @@ const RackFormModal: React.FC<RackFormModalProps> = ({ warehouseId, allWarehouse
     </div>
   );
 
-  return (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+  return createPortal(
+    <div className="modal-overlay rack-form-overlay" onClick={onCancel}>
+      <div className="modal-content rack-form-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{rack ? 'Edit Rack' : 'Add Rack'}</h2>
           <button className="close-button" onClick={onCancel}>&times;</button>
@@ -215,7 +216,8 @@ const RackFormModal: React.FC<RackFormModalProps> = ({ warehouseId, allWarehouse
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

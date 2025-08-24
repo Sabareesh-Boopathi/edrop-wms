@@ -50,9 +50,10 @@ export function isBinAvailable(bin: { status?: string }): boolean {
  * @param lines - Array of receipt lines
  * @returns allocation status
  */
-export function getAllocationStatus(lines: Array<{ bin_id?: string }>): 'Not Started' | 'Partial' | 'Allocated' {
+export function getAllocationStatus(lines: Array<{ bin_id?: string; bin_code?: string }>): 'Not Started' | 'Partial' | 'Allocated' {
   const totalLines = lines.length;
-  const allocatedLines = lines.filter(l => l.bin_id).length;
+  // Consider a line allocated only when both id and human-friendly code are available
+  const allocatedLines = lines.filter(l => l.bin_id && l.bin_code).length;
   
   if (allocatedLines === 0) return 'Not Started';
   if (allocatedLines === totalLines) return 'Allocated';

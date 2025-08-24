@@ -12,7 +12,7 @@ import DeltaTime from '../../components/inbound/DeltaTime';
 import { progressReceipt, autoAllocateReceiptBins, reassignLineBin, clearLineBin } from '../../services/inboundService';
 import * as notify from '../../lib/notify';
 import LoadingOverlay from '../../components/LoadingOverlay';
-import { formatBinCode, isRackAvailable, isBinAvailable, getAllocationStatus } from '../../utils/binUtils';
+import { getAllocationStatus } from '../../utils/binUtils';
 
 // Receipts eligible for bin allocation are those that completed QC and moved to ALLOCATED
 const eligibleStatuses: Array<Receipt['status']> = ['ALLOCATED'];
@@ -26,7 +26,7 @@ const BinAllocation: React.FC = () => {
   const [pageSize, setPageSize] = useState(25);
 
   const list = useMemo(() => receipts.filter(r => eligibleStatuses.includes(r.status)), [receipts]);
-  const pendingLines = useMemo(() => list.reduce((acc, r) => acc + r.lines.filter(l => !l.bin_id).length, 0), [list]);
+  const pendingLines = useMemo(() => list.reduce((acc, r) => acc + r.lines.filter(l => !l.bin_id || !l.bin_code).length, 0), [list]);
   const paged = useMemo(() => {
     const start = (page - 1) * pageSize;
     return list.slice(start, start + pageSize);
@@ -73,7 +73,7 @@ const BinAllocation: React.FC = () => {
           <>
             <KpiCard icon={<Boxes className="icon" />} title="Eligible Receipts" value={list.length} variant="slate" />
             <KpiCard icon={<Grid3x3 className="icon" />} title="Lines Unassigned" value={pendingLines} variant="orange" />
-            <KpiCard icon={<ClipboardCheck className="icon" />} title="Allocated Receipts" value={kpis.binsAllocated} variant="emerald" />
+            <KpiCard icon={<ClipboardCheck className="icon" />} title="In Allocation" value={kpis.binsAllocated} variant="emerald" />
             <KpiCard icon={<CheckCircle2 className="icon" />} title="Completed Today" value={kpis.completedToday} variant="indigo" />
           </>
         ) : (
@@ -151,9 +151,9 @@ const BinAllocation: React.FC = () => {
               <tr>
                 <th>Receipt</th>
                 <th>Vendor</th>
-                <th>Status</th>
+                <th>Bay Status</th>
                 <th>Lines</th>
-                <th>Allocation</th>
+                <th>Bin Status</th>
                 <th>Unassigned</th>
                 <th>Planned</th>
                 <th>Δ Time</th>
@@ -162,7 +162,7 @@ const BinAllocation: React.FC = () => {
             </thead>
             <tbody>
               {paged.map(r => {
-                const unassigned = r.lines.filter(l => !l.bin_id).length;
+                const unassigned = r.lines.filter(l => !l.bin_id || !l.bin_code).length;
                 const allocationStatus = getAllocationStatus(r.lines);
                 const allocationColor = allocationStatus === 'Allocated' ? 'var(--color-success)' 
                   : allocationStatus === 'Partial' ? 'var(--color-warning)' 
@@ -202,38 +202,70 @@ const AllocateModal: React.FC<{ receipt: Receipt; onClose: ()=>void; onSaved: ()
   const [lines, setLines] = useState<ReceiptLine[]>(() => receipt.lines);
   const [saving, setSaving] = useState(false);
 
-  const allAssigned = useMemo(() => lines.length > 0 && lines.every(l => !!l.bin_id), [lines]);
+  const allAssigned = useMemo(() => lines.length > 0 && lines.every(l => !!l.bin_id && !!l.bin_code), [lines]);
 
   const doAutoAllocate = async () => {
     setSaving(true);
     try {
+      const beforeAssigned = lines.filter(l => l.bin_id).length;
       const updated = await autoAllocateReceiptBins(receipt.id);
       if (updated) {
         setLines(updated.lines);
-  notify.success('Auto-allocated bins for unassigned lines');
+        const afterAssigned = (updated.lines || []).filter(l => l.bin_id).length;
+        const delta = afterAssigned - beforeAssigned;
+        if (delta > 0) {
+          notify.success(`Auto-allocated ${delta} bin${delta === 1 ? '' : 's'}`);
+        } else {
+          notify.info('No empty bins available to allocate');
+        }
       }
     } catch (e) {
-  notify.error('Failed to auto-allocate bins');
+      const status = (e as any)?.response?.status;
+      if (status === 403) {
+        notify.error('You do not have permission to allocate bins.');
+      } else {
+        notify.error('Failed to auto-allocate bins');
+      }
     } finally { setSaving(false); }
   };
 
   const doReassign = async (lineId: string) => {
     setSaving(true);
     try {
+      const before = lines.find(x => x.id === lineId);
       const l = await reassignLineBin(lineId);
-      if (l) setLines(prev => prev.map(x => x.id === lineId ? { ...x, bin_id: l.bin_id } : x));
+      if (l) {
+        setLines(prev => prev.map(x => x.id === lineId ? { ...x, bin_id: l.bin_id, bin_code: (l as any).bin_code } : x));
+        if (before?.bin_id && l.bin_id && before.bin_id !== l.bin_id) {
+          notify.success('Bin reassigned');
+        } else if (!before?.bin_id && l.bin_id) {
+          notify.success('Bin assigned');
+        } else {
+          notify.info('No alternative empty bins available');
+        }
+      }
     } catch (e) {
-  notify.error('Failed to reassign bin');
+      const status = (e as any)?.response?.status;
+      if (status === 403) {
+        notify.error('You do not have permission to reassign bins.');
+      } else {
+        notify.error('Failed to reassign bin');
+      }
     } finally { setSaving(false); }
   };
 
   const doClear = async (lineId: string) => {
     setSaving(true);
     try {
-      const l = await clearLineBin(lineId);
-      if (l) setLines(prev => prev.map(x => x.id === lineId ? { ...x, bin_id: undefined } : x));
+  const l = await clearLineBin(lineId);
+  if (l) setLines(prev => prev.map(x => x.id === lineId ? { ...x, bin_id: undefined, bin_code: undefined } : x));
     } catch (e) {
-  notify.error('Failed to clear bin');
+      const status = (e as any)?.response?.status;
+      if (status === 403) {
+        notify.error('You do not have permission to clear bins.');
+      } else {
+        notify.error('Failed to clear bin');
+      }
     } finally { setSaving(false); }
   };
 
@@ -254,13 +286,18 @@ const AllocateModal: React.FC<{ receipt: Receipt; onClose: ()=>void; onSaved: ()
     <div className="inbound-modal-overlay" onClick={onClose}>
       <div className="inbound-modal" onClick={e=>e.stopPropagation()} style={{maxWidth: 900}}>
         <div className="inbound-modal-header">
-          <h2 className="inbound-modal-title">Allocate Bins: {receipt.id}</h2>
+          <h2 className="inbound-modal-title">Allocate Bins for {receipt.code || receipt.id}</h2>
           <div style={{display:'flex', gap:8}}>
             <button className="btn-outline-token" onClick={doAutoAllocate} disabled={saving}>Auto-allocate</button>
             <button className="btn-outline-token" onClick={onClose}>Close</button>
           </div>
         </div>
-        <div className="inbound-modal-body" style={{gap:12}}>
+        <div className="inbound-modal-body" style={{gap:12, position:'relative'}}>
+          {saving && (
+            <div style={{position:'absolute', inset:0, background:'rgba(255,255,255,0.6)', display:'flex', alignItems:'center', justifyContent:'center'}}>
+              <LoadingOverlay label="Saving" />
+            </div>
+          )}
           <table className="inbound-table">
             <thead>
               <tr>
@@ -276,9 +313,7 @@ const AllocateModal: React.FC<{ receipt: Receipt; onClose: ()=>void; onSaved: ()
                   <td>{l.product_name || l.customer_name || l.product_sku}</td>
                   <td>{l.quantity}</td>
                   <td style={{color: l.bin_id ? 'inherit' : 'var(--color-warning)'}}>
-                    {l.bin_id ? (
-                      l.bin_code && l.bin_code.includes('-') ? l.bin_code : (l.bin_id || 'Assigned')
-                    ) : 'Unassigned'}
+                    {l.bin_id ? (l.bin_code || 'Assigned') : 'Unassigned'}
                   </td>
                   <td style={{textAlign:'right'}}>
                     <div style={{display:'flex', gap:8, justifyContent:'flex-end'}}>

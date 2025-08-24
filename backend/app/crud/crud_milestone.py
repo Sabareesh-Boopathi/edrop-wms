@@ -54,5 +54,38 @@ class CRUDMilestone(CRUDBase[Milestone, MilestoneCreate, MilestoneUpdate]):
             db.rollback()
         return milestone_obj
 
+    def get_all_by_related(
+        self,
+        db: Session,
+        *,
+        related_entity_type: str,
+        related_entity_id: str,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[Milestone]:
+        """Return milestones by a related entity type/id pair."""
+        q = (
+            db.query(self.model)
+            .filter(
+                self.model.related_entity_type == related_entity_type,
+                self.model.related_entity_id == related_entity_id,
+            )
+            .offset(skip)
+            .limit(limit)
+        )
+        return q.all()
+
+    def belongs_to_related(
+        self, db: Session, *, milestone_id: str, related_entity_type: str, related_entity_id: str
+    ) -> bool:
+        """Quick check that a milestone is associated to the given related entity."""
+        m: Milestone | None = db.query(self.model).get(milestone_id)
+        if not m:
+            return False
+        return (
+            (m.related_entity_type == related_entity_type)
+            and (str(m.related_entity_id) == str(related_entity_id))
+        )
+
 
 milestone = CRUDMilestone(Milestone)

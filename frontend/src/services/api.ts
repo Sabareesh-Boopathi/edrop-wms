@@ -98,11 +98,12 @@ api.interceptors.request.use(
       if (role === 'VIEWER' && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
         // Allow auth endpoints
         if (!isPublic) {
-          return Promise.reject({
+          const err: any = {
             isAxiosError: true,
             response: { status: 403, data: { detail: 'VIEWER cannot modify data' } },
-            config,
-          });
+            config: { ...config, __viewerWriteBlock: true },
+          };
+          return Promise.reject(err);
         }
       }
   } catch (e) { /* ignore role check errors */ }
@@ -128,7 +129,17 @@ api.interceptors.response.use(
     const isLoginCall = url.endsWith('/login/access-token');
     const isPublic = PUBLIC_PATHS.some((p) => url.endsWith(p));
 
-    if (status === 401 || status === 403) {
+    // If client-side viewer block, just bubble up without trying refresh/logout
+    if ((cfg as any)?.__viewerWriteBlock) {
+      return Promise.reject(error);
+    }
+
+    if (status === 403) {
+      // Forbidden is a permissions issue; don't logout or refresh globally
+      return Promise.reject(error);
+    }
+
+    if (status === 401) {
       if (isPublic) {
         // For public endpoints, do not attempt refresh or redirect
         return Promise.reject(error);
@@ -146,10 +157,15 @@ api.interceptors.response.use(
         }
       }
       if (!isLoginCall) {
-        // If refresh failed or already retried, clear and redirect
-        localStorage.removeItem(AUTH_TOKEN_KEY);
-        try { localStorage.setItem(LOGOUT_SENTINEL, '1'); } catch (e) { /* ignore */ void 0; }
-        window.location.href = '/login';
+        // If refresh failed or already retried, only logout for non-GET requests.
+        const method = ((cfg?.method as string) || 'get').toUpperCase();
+        if (method !== 'GET') {
+          localStorage.removeItem(AUTH_TOKEN_KEY);
+          try { localStorage.setItem(LOGOUT_SENTINEL, '1'); } catch (e) { /* ignore */ void 0; }
+          window.location.href = '/login';
+        }
+        // For GET, bubble up and let callers handle gracefully (avoid auto-logout on dashboard fetches)
+        return Promise.reject(error);
       }
     }
 

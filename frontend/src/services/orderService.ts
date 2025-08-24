@@ -1,4 +1,5 @@
 import api from './api';
+import { OrdersSchema, OrderSchema } from '../types/schemas';
 
 export type UUID = string;
 
@@ -28,16 +29,17 @@ export interface OrderProduct {
 
 export async function getOrders(params?: { skip?: number; limit?: number }) {
   const res = await api.get<Order[]>('/orders/', { params });
-  return res.data;
+  return OrdersSchema.parse(res.data) as any;
 }
 
 export async function getMyOrders() {
   const res = await api.get<Order[]>('/orders/me');
-  return res.data;
+  return OrdersSchema.parse(res.data) as any;
 }
 
 export async function getOrderProducts(orderId: UUID) {
   const res = await api.get<OrderProduct[]>(`/orders/${orderId}/products`);
+  // Not strictly validated here; keep as-is until product schema is added.
   return res.data;
 }
 

@@ -90,10 +90,20 @@
   --chart-receiving:#5e72e4;
   --chart-picking:#2dce89;
   --chart-shipping:#fb6340;
+  /* Additional chart colors for dashboard */
+  --chart-orders:#4f46e5;
+  --chart-revenue:#10b981;
+  --chart-inbound:#22c55e;
+  --chart-outbound:#f59e0b;
   --kpi-1-start:#5e72e4; --kpi-1-end:#825ee4;
   --kpi-2-start:#2dce89; --kpi-2-end:#2dceb3;
   --kpi-3-start:#fb6340; --kpi-3-end:#fbb140;
   --kpi-4-start:#11cdef; --kpi-4-end:#1171ef;
+
+  /* Glass surfaces */
+  --glass-bg: rgb(255 255 255 / 70%);
+  --glass-border: 1px solid rgb(255 255 255 / 35%);
+  --glass-blur: saturate(180%) blur(8px);
 }
 
 /* Utility classes (incrementally adopt) */

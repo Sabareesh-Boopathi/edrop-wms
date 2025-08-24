@@ -22,6 +22,20 @@ See the section about [running tests](https://facebook.github.io/create-react-ap
 ### `npm run build`
 
 Builds the app for production to the `build` folder.\
+## Vite (optional, side-by-side)
+
+You can run the frontend with Vite without removing CRA:
+
+- Dev: `npm run dev:vite`
+- Build: `npm run build:vite`
+- Preview: `npm run preview:vite`
+
+Environment variables:
+- CRA: `REACT_APP_API_BASE_URL`
+- Vite: `VITE_API_BASE_URL`
+
+The code reads Vite first and falls back to CRA.
+
 It correctly bundles React in production mode and optimizes the build for the best performance.
 
 The build is minified and the filenames include the hashes.\

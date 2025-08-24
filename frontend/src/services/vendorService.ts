@@ -32,6 +32,11 @@ export const deleteVendor = async (id: string): Promise<void> => {
     await api.delete(`${API_URL}/${id}`);
 };
 
+export const unmaskVendor = async (id: string, reason: string): Promise<{ phone_number?: string; email?: string; name?: string; }> => {
+  const res = await api.post(`${API_URL}/${id}:unmask`, { reason });
+  return res.data;
+};
+
 export interface StoreDTO {
   id: string;
   store_name: string;

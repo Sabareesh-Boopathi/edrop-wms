@@ -37,6 +37,7 @@ const BinManagement: React.FC = () => {
   const [utilFilter, setUtilFilter] = useState<'all' | 'low' | 'med' | 'high'>('all');
   const [sortBy, setSortBy] = useState<'name' | 'util'>('name');
   const [rackScale, setRackScale] = useState<'sm'|'md'|'lg'|'xl'>('md');
+  const [rackVariant, setRackVariant] = useState<'classic'|'pro'>('classic');
 
   // DnD state
   const [dragging, setDragging] = useState<{ rackId: string; warehouseId: string } | null>(null);
@@ -312,7 +313,7 @@ const BinManagement: React.FC = () => {
       {/* Instruction Banner */}
   <div style={{fontSize:12, fontWeight:500, color:'var(--color-success-deep)', background:'var(--color-primary-soft)', border:'1px solid var(--color-success-border)', padding:'6px 12px', borderRadius:10, display:'flex', justifyContent:'space-between', alignItems:'center', gap:12, marginBottom:10}}>
         <span>Click any rack visual to view detailed bin statuses. Use size controls to zoom.</span>
-        <div style={{display:'flex',alignItems:'center',gap:6}}>
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
           <span style={{fontSize:11, color:'var(--color-success-deep)'}}>Size:</span>
           {(['sm','md','lg','xl'] as const).map(s => (
             <button key={s} onClick={()=>setRackScale(s)}
@@ -323,6 +324,17 @@ const BinManagement: React.FC = () => {
                 color: rackScale===s ? 'var(--color-white)' : 'var(--color-text)'
               }}
             >{s.toUpperCase()}</button>
+          ))}
+          <span style={{fontSize:11, color:'var(--color-success-deep)', marginLeft:8}}>View:</span>
+          {(['classic','pro'] as const).map(v => (
+            <button key={v} onClick={()=>setRackVariant(v)}
+              className={`pill ${rackVariant===v?'active':''}`}
+              style={{padding:'4px 8px',fontSize:11,borderRadius:6,
+                border: rackVariant===v ? '1px solid var(--color-success-border)' : '1px solid var(--color-border)',
+                background: rackVariant===v ? 'var(--color-success)' : 'var(--color-surface)',
+                color: rackVariant===v ? 'var(--color-white)' : 'var(--color-text)'
+              }}
+            >{v === 'classic' ? 'Classic' : 'Pro'}</button>
           ))}
         </div>
       </div>
@@ -429,6 +441,7 @@ const BinManagement: React.FC = () => {
                           accentColor={accentColorFromName(String(wh.name))}
                           onDetails={() => setDetailRack(rack)}
                           scale={rackScale}
+                          variant={rackVariant}
                         />
                       </div>
                     ))}

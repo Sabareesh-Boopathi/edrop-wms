@@ -58,8 +58,13 @@ const Customers: React.FC = () => {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
+  const [revealedContacts, setRevealedContacts] = useState<Record<string, { phone_number?: string; email?: string }>>({});
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
+  // Reveal justification modal state
+  const [revealTarget, setRevealTarget] = useState<Customer | null>(null);
+  const [revealReason, setRevealReason] = useState('');
+  const [revealSaving, setRevealSaving] = useState(false);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -177,6 +182,32 @@ const Customers: React.FC = () => {
   const handleEditCustomer = (customer: Customer) => {
     setEditing(customer);
     setShowModal(true);
+  };
+
+  const openRevealModal = (customer: Customer) => {
+    setRevealTarget(customer);
+    setRevealReason('');
+  };
+
+  const submitReveal = async () => {
+    if (!revealTarget) return;
+    const reason = revealReason.trim();
+    if (reason.length < 5) {
+      notify.error('Please provide a valid justification (min 5 chars).');
+      return;
+    }
+    try {
+      setRevealSaving(true);
+      const res = await customerService.unmaskCustomer(revealTarget.id, reason);
+      setRevealedContacts((prev) => ({ ...prev, [revealTarget.id]: { phone_number: res.phone_number, email: res.email } }));
+      // No success toast per request; close modal silently
+      setRevealTarget(null);
+      setRevealReason('');
+    } catch (e: any) {
+      notify.error(e?.response?.data?.detail || 'Failed to reveal contact');
+    } finally {
+      setRevealSaving(false);
+    }
   };
 
   const getErrorMessage = (error: any): string => {
@@ -434,19 +465,25 @@ const Customers: React.FC = () => {
                           </div>
                           <div className="name-text">
                             <div className="name-primary">{customer.name}</div>
-                            {(customer.email || customer.phone_number) && (
-                              <div className="name-secondary">
-                                {customer.email || ''}{customer.email && customer.phone_number ? ' · ' : ''}{customer.phone_number || ''}
-                              </div>
-                            )}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
                         {(customer.phone_number || customer.email) ? (
                           <div>
-                            {customer.phone_number && <div>{customer.phone_number}</div>}
-                            {customer.email && <div style={{color:'var(--color-text-soft)'}}>{customer.email}</div>}
+                            <div>
+                              {(revealedContacts[customer.id]?.phone_number || customer.phone_number) && (
+                                <div>{revealedContacts[customer.id]?.phone_number || customer.phone_number}</div>
+                              )}
+                              {(revealedContacts[customer.id]?.email || customer.email) && (
+                                <div style={{color:'var(--color-text-soft)'}}>{revealedContacts[customer.id]?.email || customer.email}</div>
+                              )}
+                            </div>
+                            <div style={{ marginTop: 4 }}>
+                              <button type="button" className="action-link" onClick={() => openRevealModal(customer)}>
+                                Reveal with justification
+                              </button>
+                            </div>
                           </div>
                         ) : <span style={{color:'var(--color-text-muted)'}}>—</span>}
                       </TableCell>
@@ -517,6 +554,30 @@ const Customers: React.FC = () => {
           onSave={handleSaveCustomer}
         />
       )}
+
+      {/* Reveal Justification Modal */}
+      {revealTarget && (
+        <div className="inbound-modal-overlay" onClick={() => setRevealTarget(null)}>
+          <div className="inbound-modal" onClick={e=>e.stopPropagation()}>
+            <div className="inbound-modal-header">
+              <h3 className="inbound-modal-title">Reveal contact for “{revealTarget.name}”</h3>
+              <button type="button" onClick={() => setRevealTarget(null)} className="btn-outline-token">Close</button>
+            </div>
+            <div className="inbound-modal-body">
+              <div className="form-row">
+                <div className="form-field" style={{width:'100%'}}>
+                  <label htmlFor="cust_reveal_reason">Justification</label>
+                  <textarea id="cust_reveal_reason" value={revealReason} onChange={(e)=>setRevealReason(e.target.value)} placeholder="Enter your reason (min 5 characters)" rows={4} />
+                </div>
+              </div>
+            </div>
+            <div className="inbound-modal-footer">
+              <button type="button" onClick={() => setRevealTarget(null)} className="btn-outline-token">Cancel</button>
+              <button type="button" onClick={submitReveal} className="btn-primary-token" disabled={revealSaving}>{revealSaving ? 'Revealing…' : 'Reveal Now'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -530,9 +591,31 @@ const CustomerModal: React.FC<{
 }> = ({ initial, communities, addresses, onClose, onSave }) => {
   const [isMapOpen, setIsMapOpen] = useState(false);
   const isEdit = !!initial;
-  const { register, handleSubmit, formState: { errors, isSubmitting }, control, setValue, watch } = useForm<Schema>({
-    resolver: zodResolver(schema),
-    defaultValues: initial ? {
+
+  // Compute sensible defaults for create/edit, including address lat/lng when editing an Individual
+  const defaults = useMemo<Partial<Schema>>(() => {
+    if (!initial) {
+      return {
+        name: '',
+        phone_number: '',
+        email: '',
+        // Start without a residence type; user selects and fields show accordingly
+        community_id: '',
+        block: '',
+        flat_number: '',
+        address_line1: '',
+        address_line2: '',
+        city: '',
+        state: '',
+        pincode: '',
+        landmark: '',
+        door_number: '',
+        status: 'ACTIVE',
+        notes: '',
+      };
+    }
+
+    const base: Partial<Schema> = {
       name: initial.name || '',
       phone_number: initial.phone_number || '',
       email: initial.email || '',
@@ -540,25 +623,30 @@ const CustomerModal: React.FC<{
       community_id: initial.community_id || '',
       block: initial.block || '',
       flat_number: initial.flat_number || '',
-      address_line1: '',
-      address_line2: '',
-      city: '',
-      state: '',
-      pincode: '',
-      landmark: '',
-      door_number: '',
-      latitude: undefined,
-      longitude: undefined,
       status: initial.status || 'ACTIVE',
       notes: initial.notes || '',
-    } : {
-      name: '',
-      phone_number: '',
-      email: '',
-      // Start without a residence type; user selects and fields show accordingly
-      community_id: '',
-      block: '',
-      flat_number: '',
+    };
+
+    if (initial.address_id && !initial.community_id) {
+      const addr = addresses.find(a => a.id === initial.address_id);
+      return {
+        ...base,
+        address_line1: addr?.street_address || '',
+        address_line2: addr?.area || '',
+        city: addr?.city || '',
+        state: addr?.state || '',
+        pincode: addr?.pincode || '',
+        landmark: addr?.landmark || '',
+        door_number: addr?.door_number || '',
+        latitude: (addr?.latitude ?? undefined) as any,
+        longitude: (addr?.longitude ?? undefined) as any,
+      };
+    }
+
+    // Community-based customers: pull lat/lng from community (if available) for reference
+    const comm = initial.community_id ? communities.find(c => c.id === initial.community_id) : undefined;
+    return {
+      ...base,
       address_line1: '',
       address_line2: '',
       city: '',
@@ -566,10 +654,20 @@ const CustomerModal: React.FC<{
       pincode: '',
       landmark: '',
       door_number: '',
-      status: 'ACTIVE',
-      notes: '',
-    }
+      latitude: (comm?.latitude ?? undefined) as any,
+      longitude: (comm?.longitude ?? undefined) as any,
+    };
+  }, [initial, addresses, communities]);
+
+  const { register, handleSubmit, formState: { errors, isSubmitting }, control, setValue, watch, reset } = useForm<Schema>({
+    resolver: zodResolver(schema),
+    defaultValues: defaults as Schema,
   });
+
+  // Ensure form picks up new defaults when editing/props change
+  useEffect(() => {
+    reset(defaults as Schema);
+  }, [defaults, reset]);
 
   const locationType = watch('location_type');
   const latitude = watch('latitude');
@@ -602,10 +700,12 @@ const CustomerModal: React.FC<{
     setCommunitySuggestions(matches);
   }, [communityQuery, communities]);
 
-  // When community selection changes, clear block and repopulate options
+  // When community selection changes by user, clear block; retain prefilled block when editing same community
   useEffect(() => {
-    setValue('block', '', { shouldValidate: true });
-  }, [selectedCommunity, setValue]);
+    if (selectedCommunity?.id && selectedCommunity.id !== initial?.community_id) {
+      setValue('block', '', { shouldValidate: true });
+    }
+  }, [selectedCommunity?.id, initial?.community_id, setValue]);
 
   // Clear mutually exclusive fields when switching location type
   useEffect(() => {

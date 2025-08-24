@@ -40,12 +40,12 @@ const AuditLog: React.FC = () => {
     try {
       const data = await getSystemAudit(limit);
       // If MANAGER, scope client-side to their warehouse and common entities
-      if (role === 'MANAGER' && managerWarehouseId) {
+    if (role === 'MANAGER' && managerWarehouseId) {
         const scoped = data.filter((it) => {
           // include system-level configs
           if (it.entity_type === 'system_config') return true;
-          // include vendor/store/products (common once per user request)
-          if (['vendor','store','product','products','stores','vendors'].includes(it.entity_type)) return true;
+      // include vendor/store/products and contact reveals
+      if (['vendor','store','product','products','stores','vendors','vendor_contact_unmask','customer_contact_unmask'].includes(it.entity_type)) return true;
           // include warehouse_config for their warehouse only
           if (it.entity_type === 'warehouse_config') {
             return String(it.entity_id || '') === String(managerWarehouseId);
@@ -70,10 +70,35 @@ const AuditLog: React.FC = () => {
   const getActorName = (it: AuditLogItem) => it.actor_name || it.actor_user_id;
   const getActorRole = (it: AuditLogItem) => (it.actor_role || '').toUpperCase();
 
+  // Dynamic filter options from fetched data
+  const actionOptions = React.useMemo(() => {
+    const set = new Set<string>(items.map(i => i.action).filter(Boolean) as string[]);
+    return Array.from(set).sort();
+  }, [items]);
+  const entityOptions = React.useMemo(() => {
+    const set = new Set<string>(items.map(i => i.entity_type).filter(Boolean) as string[]);
+    return Array.from(set).sort();
+  }, [items]);
+
+  const displayEntityLabel = React.useCallback((t: string) => {
+    switch (t) {
+      case 'vendor_contact_unmask': return 'Vendor Contact';
+      case 'customer_contact_unmask': return 'Customer Contact';
+      case 'system_config': return 'System Config';
+      case 'warehouse_config': return 'Warehouse Config';
+      default: return (t || '').replaceAll('_', ' ');
+    }
+  }, []);
+
+  const displayActionLabel = React.useCallback((a: string) => {
+    if (!a) return a;
+    return a.charAt(0).toUpperCase() + a.slice(1);
+  }, []);
+
   const filtered = React.useMemo(() => {
     let arr = items;
-    if (actionFilter !== 'all') arr = arr.filter(it => it.action === actionFilter);
-    if (entityFilter !== 'all') arr = arr.filter(it => it.entity_type === entityFilter);
+  if (actionFilter !== 'all') arr = arr.filter(it => it.action === actionFilter);
+  if (entityFilter !== 'all') arr = arr.filter(it => it.entity_type === entityFilter);
   if (actorFilter !== 'all') arr = arr.filter(it => (it.actor_name || it.actor_user_id) === actorFilter);
     if (dateFilter) {
       // dateFilter is in 'YYYY-MM-DDTHH:mm' format
@@ -188,15 +213,18 @@ const AuditLog: React.FC = () => {
               <label>Action</label>
               <select value={actionFilter} onChange={e=>{ setActionFilter(e.target.value); setPage(1); }}>
                 <option value="all">All</option>
-                <option value="update">Update</option>
+                {actionOptions.map(a => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
               </select>
             </div>
             <div className="form-field" style={{ minWidth: 180 }}>
               <label>Entity</label>
               <select value={entityFilter} onChange={e=>{ setEntityFilter(e.target.value); setPage(1); }}>
                 <option value="all">All</option>
-                <option value="system_config">System Config</option>
-                <option value="warehouse_config">Warehouse Config</option>
+                {entityOptions.map(en => (
+                  <option key={en} value={en}>{en}</option>
+                ))}
               </select>
             </div>
             <div className="form-field" style={{ minWidth: 200 }}>
@@ -215,6 +243,13 @@ const AuditLog: React.FC = () => {
                 <option value="250">250</option>
                 <option value="500">500</option>
               </select>
+            </div>
+            <div className="form-field" style={{ minWidth: 180 }}>
+              <label>Quick</label>
+              <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                <button type="button" className="btn-outline-token" onClick={() => { setEntityFilter('all'); setActionFilter('all'); setQ(''); setPage(1); }}>All</button>
+                <button type="button" className="btn-outline-token" title="Show contact reveals" onClick={() => { setEntityFilter('vendor_contact_unmask'); setActionFilter('unmask'); setPage(1); }}>Contact reveals</button>
+              </div>
             </div>
           </>
         }
@@ -242,11 +277,11 @@ const AuditLog: React.FC = () => {
           <table className="inbound-table">
             <thead>
               <tr>
-                <th><button type="button" className="th-sort" onClick={()=> sortBy('created_at')}>When</button></th>
-                <th><button type="button" className="th-sort" onClick={()=> sortBy('actor')}>Actor</button></th>
-                <th><button type="button" className="th-sort" onClick={()=> sortBy('role')}>Role</button></th>
-                <th><button type="button" className="th-sort" onClick={()=> sortBy('entity_type')}>Entity</button></th>
-                <th><button type="button" className="th-sort" onClick={()=> sortBy('action')}>Action</button></th>
+                <th><button type="button" className="table-sort-btn" onClick={()=> sortBy('created_at')}>When {sortKey==='created_at' ? (sortDir==='asc'?'▲':'▼') : ''}</button></th>
+                <th><button type="button" className="table-sort-btn" onClick={()=> sortBy('actor')}>Actor {sortKey==='actor' ? (sortDir==='asc'?'▲':'▼') : ''}</button></th>
+                <th><button type="button" className="table-sort-btn" onClick={()=> sortBy('role')}>Role {sortKey==='role' ? (sortDir==='asc'?'▲':'▼') : ''}</button></th>
+                <th><button type="button" className="table-sort-btn" onClick={()=> sortBy('entity_type')}>Entity {sortKey==='entity_type' ? (sortDir==='asc'?'▲':'▼') : ''}</button></th>
+                <th><button type="button" className="table-sort-btn" onClick={()=> sortBy('action')}>Action {sortKey==='action' ? (sortDir==='asc'?'▲':'▼') : ''}</button></th>
                 <th>Changes</th>
               </tr>
             </thead>
@@ -265,13 +300,15 @@ const AuditLog: React.FC = () => {
                   <td className="mono subtle">{getActorRole(it) || '-'}</td>
                   <td>
                     <span className={ENTITY_BADGE[it.entity_type] || 'badge'}>
-                      {it.entity_type.replace('_', ' ')}
+                      {displayEntityLabel(it.entity_type)}
                     </span>
-                    {it.entity_id && (
-                      <span className="entity-id mono">{it.entity_id}</span>
+                    {(it.entity_name || it.entity_id) && (
+                      <span className="entity-id mono" style={{ marginLeft: 8 }} title={it.entity_id || ''}>
+                        {it.entity_name ? it.entity_name : `#${String(it.entity_id).slice(0,8)}…`}
+                      </span>
                     )}
                   </td>
-                  <td><span className="chip chip--action">{it.action}</span></td>
+                  <td><span className="chip chip--action">{displayActionLabel(it.action)}</span></td>
                   <td>
                     <ul className="changes-list">
                       {Object.entries(it.changes || {}).map(([field, val]) => (

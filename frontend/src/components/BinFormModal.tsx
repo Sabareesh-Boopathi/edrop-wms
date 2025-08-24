@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Bin, Rack, BinStatus } from '../types';
 import { createBin, updateBin, deleteBin } from '../services/rackService';
 import './RackDetailModal.css';
@@ -93,9 +94,9 @@ const BinFormModal: React.FC<BinFormModalProps> = ({ rack, bin, onClose, onChang
     }
   };
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+  return createPortal(
+    <div className="modal-overlay bin-form-overlay" onClick={onClose}>
+      <div className="modal-content bin-form-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Edit Bin S{form.stack_index + 1} • B{form.bin_index + 1}</h2>
           <button className="close-button" onClick={onClose}>&times;</button>
@@ -141,7 +142,8 @@ const BinFormModal: React.FC<BinFormModalProps> = ({ rack, bin, onClose, onChang
           <button className="btn-primary-token" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

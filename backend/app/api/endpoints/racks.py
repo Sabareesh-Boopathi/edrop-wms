@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.api import deps
 from app.crud import crud_rack
+from app.api.endpoints.bins import materialize_bins as materialize_bins_for_rack
 from app.schemas.rack import Rack, RackCreateRequest, RackUpdate, RackOut
 from app.models.user import User
 
@@ -51,3 +52,15 @@ def delete_rack(
     if not db_rack:
         raise HTTPException(status_code=404, detail="Rack not found")
     return crud_rack.rack.remove(db, id=rack_id)
+
+@router.post("/racks/{rack_id}/materialize", response_model=dict)
+def materialize_rack_bins(
+    rack_id: uuid.UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    """Proxy to create any missing Bin rows for the given rack.
+
+    This provides a stable URL under the racks endpoint for the frontend.
+    """
+    return materialize_bins_for_rack(rack_id, db, current_user)

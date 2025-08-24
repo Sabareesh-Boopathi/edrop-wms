@@ -79,10 +79,15 @@ const getErrorMessage = (error: any): string => {
 const Vendors: React.FC = () => {
     const [vendors, setVendors] = useState<VendorData[]>([]);
     const [summaries, setSummaries] = useState<VendorSummary[]>([]);
+    const [revealed, setRevealed] = useState<Record<string, { email?: string; phone_number?: string }>>({});
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedVendor, setSelectedVendor] = useState<VendorData | null>(null);
     const [showVendorDetails, setShowVendorDetails] = useState(false);
+    // Reveal justification modal state
+    const [revealVendor, setRevealVendor] = useState<VendorData | null>(null);
+    const [revealReason, setRevealReason] = useState('');
+    const [revealSaving, setRevealSaving] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<'' | VendorStatus>('');
     const [typeFilter, setTypeFilter] = useState<'' | VendorType>('');
@@ -137,6 +142,32 @@ const Vendors: React.FC = () => {
     const handleEditVendor = (vendor: VendorData) => {
         setSelectedVendor(vendor);
         setIsModalOpen(true);
+    };
+
+    const openRevealModal = (vendor: VendorData) => {
+        setRevealVendor(vendor);
+        setRevealReason('');
+    };
+
+    const submitReveal = async () => {
+        if (!revealVendor) return;
+        const reason = revealReason.trim();
+        if (reason.length < 5) {
+            notify.error('Please provide a valid justification (min 5 chars).');
+            return;
+        }
+        try {
+            setRevealSaving(true);
+            const res = await vendorService.unmaskVendor(revealVendor.id, reason);
+            setRevealed(prev => ({ ...prev, [revealVendor.id]: { email: res.email, phone_number: res.phone_number } }));
+            // No success toast per request; close modal silently
+            setRevealVendor(null);
+            setRevealReason('');
+        } catch (e: any) {
+            notify.error(getErrorMessage(e));
+        } finally {
+            setRevealSaving(false);
+        }
     };
 
     const handleDeleteVendor = async (id: string) => {
@@ -477,8 +508,13 @@ const Vendors: React.FC = () => {
                                         <div className="vendor-registered-name">{vendor.registered_name}</div>
                                     </TableCell>
                                     <TableCell>
-                                        {vendor.email && <div className="contact-info"><Mail size={14} /> {vendor.email}</div>}
-                                        {vendor.phone_number && <div className="contact-info"><Phone size={14} /> {vendor.phone_number}</div>}
+                                        {(revealed[vendor.id]?.email || vendor.email) && <div className="vendor-contact"><Mail /> {revealed[vendor.id]?.email || vendor.email}</div>}
+                                        {(revealed[vendor.id]?.phone_number || vendor.phone_number) && <div className="vendor-contact"><Phone /> {revealed[vendor.id]?.phone_number || vendor.phone_number}</div>}
+                                        <div style={{ marginTop: 4 }}>
+                                            <button type="button" className="action-link" onClick={() => openRevealModal(vendor)}>
+                                                Reveal with justification
+                                            </button>
+                                        </div>
                                     </TableCell>
                                     <TableCell><TypeBadge type={vendor.vendor_type} /></TableCell>
                                     <TableCell><StatusBadge status={vendor.vendor_status} /></TableCell>
@@ -526,6 +562,31 @@ const Vendors: React.FC = () => {
                     onClose={() => setShowVendorDetails(false)}
                 />
             )}
+            {/* Reveal Justification Modal */}
+            <AnimatePresence>
+                {revealVendor && (
+                    <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                        <motion.div className="modal-content" initial={{ y: -40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }} transition={{ type: 'spring', stiffness: 260, damping: 22 }}>
+                            <div className="modal-header">
+                                <h3 className="modal-title">Reveal contact for “{revealVendor.business_name}”</h3>
+                                <Button variant="ghost" size="icon" onClick={() => setRevealVendor(null)} className="close-btn"><X size={20} /></Button>
+                            </div>
+                            <div className="modal-form">
+                                <div className="form-group form-group-span-2">
+                                    <label htmlFor="reveal_reason">Justification</label>
+                                    <textarea id="reveal_reason" value={revealReason} onChange={(e) => setRevealReason(e.target.value)} placeholder="Enter your reason (min 5 characters)" style={{ minHeight: 88, resize: 'vertical', padding: 12, borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border-strong)', background: 'var(--color-surface)', font: 'inherit' }} />
+                                </div>
+                                <div className="modal-footer">
+                                    <Button type="button" onClick={() => setRevealVendor(null)} className="btn-outline-token">Cancel</Button>
+                                    <Button type="button" onClick={submitReveal} disabled={revealSaving} className="btn-primary-token">
+                                        {revealSaving ? 'Revealing…' : 'Reveal Now'}
+                                    </Button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

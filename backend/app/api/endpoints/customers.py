@@ -6,6 +6,10 @@ from typing import List
 import uuid
 
 from app import crud, models, schemas
+from app.core.privacy import mask_contact_dict
+from app.schemas.privacy import UnmaskRequest, UnmaskResponse
+from app.models.audit_log import AuditLog
+from datetime import datetime
 from app.api import deps
 
 router = APIRouter()
@@ -45,7 +49,13 @@ def read_customers(
     if role not in allowed:
         raise HTTPException(status_code=403, detail="Insufficient privileges to list customers")
     customers = crud.customer.get_multi(db, skip=skip, limit=limit)
-    return customers
+    # Mask PII by default
+    masked = []
+    for c in customers:
+        d = schemas.Customer.model_validate(c).model_dump()
+        d = mask_contact_dict(d, phone_key="phone_number", email_key="email")
+        masked.append(d)
+    return masked
 
 # --- Start of Corrected Endpoints ---
 
@@ -106,7 +116,42 @@ def read_customer(
     if db_customer is None:
         logger.warning(f"❌ Customer '{customer_id}' not found for request from user '{current_user.id}'.")
         raise HTTPException(status_code=404, detail="Customer not found")
-    return db_customer
+    # Mask PII by default
+    d = schemas.Customer.model_validate(db_customer).model_dump()
+    return mask_contact_dict(d, phone_key="phone_number", email_key="email")
+
+
+@router.post("/{customer_id}:unmask", response_model=UnmaskResponse)
+def unmask_customer_contact(
+    customer_id: uuid.UUID,
+    payload: UnmaskRequest,
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_active_user),
+):
+    """Return full phone/email with justification, and record an audit log."""
+    cust = crud.customer.get(db, id=customer_id)
+    if not cust:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    # Record audit
+    db.add(
+        AuditLog(
+            actor_user_id=current_user.id,
+            entity_type="customer_contact_unmask",
+            entity_id=str(customer_id),
+            action="unmask",
+            changes={"reason": {"before": None, "after": payload.reason}},
+        )
+    )
+    db.commit()
+    return UnmaskResponse(
+        id=cust.id,
+        name=cust.name,
+        phone_number=cust.phone_number,
+        email=cust.email,
+        entity_type="customer",
+        entity_id=str(customer_id),
+    revealed_at=datetime.utcnow(),
+    )
 
 @router.put("/{customer_id}", response_model=schemas.Customer)
 def update_customer(

@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Rack, Bin } from 'types';
 import { BinStatus } from 'types';
 import { Package as PackageIcon, PackageOpen, Wrench, Ban, Bookmark, Edit, Trash, X } from 'lucide-react';
 import './RackDetailModal.css';
-import { getBinsByRack } from 'services/rackService';
+import { getBinsByRack, materializeRackBins } from 'services/rackService';
 import BinFormModal from 'components/BinFormModal';
 
 interface RackDetailModalProps {
@@ -45,6 +46,8 @@ const RackDetailModal: React.FC<RackDetailModalProps> = ({ rack, onClose, onEdit
     const [bins, setBins] = useState<Bin[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [matSummary, setMatSummary] = useState<{expected:number; existing:number; created:number} | null>(null);
+    const [matLoading, setMatLoading] = useState(false);
 
     const [binEditing, setBinEditing] = useState<Bin | null>(null);
 
@@ -72,7 +75,22 @@ const RackDetailModal: React.FC<RackDetailModalProps> = ({ rack, onClose, onEdit
     const findBin = (row: number, col: number) => bins.find(b => b.stack_index === row && b.bin_index === col);
     const getStatus = (row: number, col: number): BinStatus => findBin(row, col)?.status ?? 'empty';
 
-    return (
+        const onMaterialize = async () => {
+            try {
+                setMatLoading(true);
+                const res = await materializeRackBins(rack.id);
+                setMatSummary({ expected: res.expected, existing: res.existing, created: res.created });
+                // reload bins
+                const data = await getBinsByRack(rack.id);
+                setBins(data);
+            } catch (e) {
+                setError('Failed to create missing bins');
+            } finally {
+                setMatLoading(false);
+            }
+        };
+
+    return createPortal(
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                                 <div className="modal-header">
@@ -108,7 +126,24 @@ const RackDetailModal: React.FC<RackDetailModalProps> = ({ rack, onClose, onEdit
                                     </div>
                                 </div>
 
-                                <div className="modal-body">
+                                                                <div className="modal-body">
+                                                                        {(!bins || bins.length < (rack.stacks * rack.bins_per_stack)) && (
+                                                                            <div className="info-banner" style={{marginBottom:12}}>
+                                                                                <span>
+                                                                                    Some bin slots are not created in the database. Click below to auto-create the missing { (rack.stacks * rack.bins_per_stack) - (bins?.length || 0) } bins for {rack.name}.
+                                                                                </span>
+                                                                                <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                                                                                    <button className="btn-primary-token" onClick={onMaterialize} disabled={matLoading}>
+                                                                                        {matLoading ? 'Creating...' : 'Create missing bins'}
+                                                                                    </button>
+                                                                                    {matSummary && (
+                                                                                        <span style={{fontSize:12,color:'var(--color-text-soft)'}}>
+                                                                                            created {matSummary.created} / expected {matSummary.expected}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
                                     <div className="panel-left panel-scroll">
                                         <p className="section-title" style={{marginTop:0}}>Bins</p>
                                         {loading && <p>Loading bins...</p>}
@@ -191,7 +226,8 @@ const RackDetailModal: React.FC<RackDetailModalProps> = ({ rack, onClose, onEdit
                     />
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

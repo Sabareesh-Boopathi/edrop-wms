@@ -12,6 +12,7 @@ export interface AuditLogItem {
   actor_role?: string;
   entity_type: string;
   entity_id?: string | null;
+  entity_name?: string | null;
   action: string;
   changes: Record<string, AuditChangeEntry>;
   created_at: string;

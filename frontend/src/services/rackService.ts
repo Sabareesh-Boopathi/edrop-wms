@@ -31,6 +31,11 @@ export const deleteRack = async (rackId: string): Promise<void> => {
   await api.delete(`/racks/${rackId}`);
 };
 
+export const materializeRackBins = async (rackId: string): Promise<{ expected: number; existing: number; created: number } & Record<string, any>> => {
+  const res = await api.post(`/racks/${rackId}/materialize`, {});
+  return res.data;
+};
+
 // Bins
 export const getBinsByRack = async (rackId: string): Promise<Bin[]> => {
   const res = await api.get(`/racks/${rackId}/bins`);

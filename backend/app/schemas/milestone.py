@@ -3,7 +3,7 @@ Pydantic schemas for Milestone model.
 """
 import uuid
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.models.milestone import MilestoneEventType, MilestoneEntityType
 
@@ -33,12 +33,8 @@ class MilestoneUpdate(MilestoneBase):
 class MilestoneInDBBase(MilestoneBase):
     id: uuid.UUID
     timestamp: datetime
-    auto_triggered: bool
     user_id: uuid.UUID | None
-
-    class Config:
-        orm_mode = True
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Properties to return to client

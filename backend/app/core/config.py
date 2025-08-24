@@ -17,7 +17,13 @@ class Settings(BaseSettings):
     PROJECT_VERSION: str = "1.0.0"
 
     # Backend CORS origins
-    BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:3000"]
+    # Include both CRA (3000) and Vite (5173) defaults for local dev
+    BACKEND_CORS_ORIGINS: list[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
 
     # Individual database components read from .env
     DB_USER: str

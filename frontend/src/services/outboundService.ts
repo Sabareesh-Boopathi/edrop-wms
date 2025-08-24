@@ -1,4 +1,5 @@
 import api from './api';
+import { PickTasksSchema, DispatchRoutesSchema, PickTaskSchema, DispatchRouteSchema } from '../types/schemas';
 
 export type UUID = string;
 
@@ -60,7 +61,7 @@ export interface DispatchRoute {
 // ---- API wrappers (no client-side mocks) ----
 export async function fetchPickTasks(): Promise<PickTask[]> {
   const r = await api.get('/outbound/pick-tasks');
-  return r.data;
+  return PickTasksSchema.parse(r.data) as any;
 }
 export async function fetchToteLocation(toteId: string): Promise<ToteLocation> {
   const r = await api.get(`/outbound/totes/${toteId}/location`);
@@ -115,7 +116,7 @@ export async function reoptimizeRoutes(): Promise<boolean> {
 
 export async function fetchDispatchRoutes(): Promise<DispatchRoute[]> {
   const r = await api.get('/outbound/dispatch/routes');
-  return r.data;
+  return DispatchRoutesSchema.parse(r.data) as any;
 }
 export async function assignDriver(routeId: string, driver: string, vehicle?: string): Promise<boolean> {
   await api.post(`/outbound/dispatch/${routeId}/assign-driver`, { driver, vehicle });

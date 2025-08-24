@@ -13,19 +13,28 @@ interface ConfigContextType {
   formatDateTime: (value: string | number | Date) => string;
 }
 
+// Helper to read env values in both CRA and Vite without referencing undefined globals
+const getEnv = (key: string): string | undefined => {
+  const viteVal = (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env[key]) || undefined;
+  if (viteVal !== undefined) return viteVal as string;
+  // Avoid ReferenceError when process is not defined (Vite)
+  const nodeEnv = (typeof process !== 'undefined' && (process as any).env && (process as any).env[key]) || undefined;
+  return nodeEnv as string | undefined;
+};
+
 const defaultConfig: SystemConfig = {
   appName: 'eDrop WMS',
   logoUrl: '',
-  defaultTimeZone: process.env.REACT_APP_DEFAULT_TZ || 'Asia/Kolkata',
-  dateFormat: (process.env.REACT_APP_DATE_FORMAT as DateFormat) || 'DD-MM-YYYY',
-  timeFormat: (process.env.REACT_APP_TIME_FORMAT as TimeFormat) || '24h',
-  defaultLanguage: process.env.REACT_APP_LANG || 'en',
+  defaultTimeZone: getEnv('VITE_DEFAULT_TZ') || getEnv('REACT_APP_DEFAULT_TZ') || 'Asia/Kolkata',
+  dateFormat: (getEnv('VITE_DATE_FORMAT') as DateFormat) || (getEnv('REACT_APP_DATE_FORMAT') as DateFormat) || 'DD-MM-YYYY',
+  timeFormat: (getEnv('VITE_TIME_FORMAT') as TimeFormat) || (getEnv('REACT_APP_TIME_FORMAT') as TimeFormat) || '24h',
+  defaultLanguage: getEnv('VITE_LANG') || getEnv('REACT_APP_LANG') || 'en',
   defaultCrateSize: 'standard',
   defaultCrateStatus: 'inactive',
   defaultRackStatus: 'active',
   maxStackHeight: 0,
   maxBinsPerRack: 0,
-  sessionTimeoutMins: Number(process.env.REACT_APP_SESSION_TIMEOUT_MINS || 15),
+  sessionTimeoutMins: Number(getEnv('VITE_SESSION_TIMEOUT_MINS') || getEnv('REACT_APP_SESSION_TIMEOUT_MINS') || 15),
   passwordPolicy: 'min8+complexity',
   roleAccessToggle: true,
   defaultPrinter: '',

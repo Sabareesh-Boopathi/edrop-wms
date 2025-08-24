@@ -38,6 +38,11 @@ export async function getCustomer(id: string): Promise<Customer> {
   return r.data; 
 }
 
+export async function unmaskCustomer(id: string, reason: string): Promise<{ phone_number?: string; email?: string; name?: string; }>{
+  const r = await api.post(`${API}${id}:unmask`, { reason });
+  return r.data;
+}
+
 export async function createCustomer(payload: CustomerCreate): Promise<Customer> {
   // Validate required fields
   if (!payload.name?.trim()) {

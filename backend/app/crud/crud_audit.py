@@ -33,6 +33,9 @@ class CRUDAudit:
                 "product", "products",
                 "store_product",
                 "system_config",
+                # Include contact reveal events
+                "vendor_contact_unmask",
+                "customer_contact_unmask",
             ]
             # Build filter: (entity_type in common_types) OR (warehouse_config for their warehouse)
             from sqlalchemy import or_, and_

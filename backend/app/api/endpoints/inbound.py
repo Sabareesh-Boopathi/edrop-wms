@@ -12,6 +12,8 @@ import logging
 from app.crud.crud_audit import audit as crud_audit
 from app import models
 from app.models.audit_log import AuditLog
+from app.models.rack import Rack
+from app.models.bin import Bin
 
 router = APIRouter(prefix="/inbound", tags=["Inbound"])
 logger = logging.getLogger("app.api.endpoints.inbound")
@@ -182,6 +184,15 @@ def update_receipt(
     before_status = obj.status
     obj = inbound_receipts.update(db, db_obj=obj, obj_in=payload)
     logger.info("✅ Updated inbound receipt %s", receipt_id)
+    # Auto-allocate bins when status advances to ALLOCATED (QC completed)
+    try:
+        if payload.status is not None and payload.status == "ALLOCATED" and before_status != payload.status:
+            logger.info("⚙️ Triggering auto-allocation for receipt %s due to status=ALLOCATED", receipt_id)
+            allocated = svc_auto_allocate(db, receipt_id)
+            if allocated:
+                obj = allocated
+    except Exception:
+        logger.exception("Auto-allocation on status change failed for receipt %s", receipt_id)
     # Audit status changes (and key fields if extended later)
     try:
         if payload.status is not None and before_status != payload.status:
@@ -324,3 +335,88 @@ def clear_line(
     except Exception:
         logger.exception("Failed to write audit log for line clear")
     return obj
+
+# Diagnostics: rack/bin availability counts for a warehouse
+@router.get("/debug/bin-stats")
+def debug_bin_stats(
+    warehouse_id: Optional[uuid.UUID] = Query(None),
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    from sqlalchemy import func
+    # If not provided, try to infer from user's warehouse_id (non-admin) or pick first
+    wid = warehouse_id
+    if wid is None:
+        wid = getattr(current_user, 'warehouse_id', None)
+        if wid is None:
+            # fallback to first seen warehouse in receipts to keep this lightweight
+            any_rec = db.query(models.InboundReceipt).order_by(models.InboundReceipt.created_at.desc()).first()
+            wid = getattr(any_rec, 'warehouse_id', None)
+    if wid is None:
+        return {
+            "note": "warehouse_id not provided and could not infer; pass ?warehouse_id=...",
+            "warehouse_id": None,
+        }
+    # Racks
+    total_racks = db.query(func.count(Rack.id)).filter(Rack.warehouse_id == wid).scalar() or 0
+    active_racks = db.query(func.count(Rack.id)).filter(Rack.warehouse_id == wid, Rack.status == 'active').scalar() or 0
+    # Bins (all racks in warehouse)
+    total_bins = (
+        db.query(func.count(Bin.id))
+        .join(Rack, Bin.rack_id == Rack.id)
+        .filter(Rack.warehouse_id == wid)
+        .scalar() or 0
+    )
+    empty_bins_all = (
+        db.query(func.count(Bin.id))
+        .join(Rack, Bin.rack_id == Rack.id)
+        .filter(Rack.warehouse_id == wid, Bin.status == 'empty')
+        .scalar() or 0
+    )
+    # Bins on active racks only
+    empty_bins_active = (
+        db.query(func.count(Bin.id))
+        .join(Rack, Bin.rack_id == Rack.id)
+        .filter(Rack.warehouse_id == wid, Rack.status == 'active', Bin.status == 'empty')
+        .scalar() or 0
+    )
+    reserved_bins_active = (
+        db.query(func.count(Bin.id))
+        .join(Rack, Bin.rack_id == Rack.id)
+        .filter(Rack.warehouse_id == wid, Rack.status == 'active', Bin.status == 'reserved')
+        .scalar() or 0
+    )
+    occupied_bins_active = (
+        db.query(func.count(Bin.id))
+        .join(Rack, Bin.rack_id == Rack.id)
+        .filter(Rack.warehouse_id == wid, Rack.status == 'active', Bin.status == 'occupied')
+        .scalar() or 0
+    )
+    blocked_bins_active = (
+        db.query(func.count(Bin.id))
+        .join(Rack, Bin.rack_id == Rack.id)
+        .filter(Rack.warehouse_id == wid, Rack.status == 'active', Bin.status == 'blocked')
+        .scalar() or 0
+    )
+    maintenance_bins_active = (
+        db.query(func.count(Bin.id))
+        .join(Rack, Bin.rack_id == Rack.id)
+        .filter(Rack.warehouse_id == wid, Rack.status == 'active', Bin.status == 'maintenance')
+        .scalar() or 0
+    )
+    logger.info(
+        "🔎 bin-stats wid=%s racks total=%d active=%d | bins total=%d empty_all=%d empty_active=%d",
+        wid, total_racks, active_racks, total_bins, empty_bins_all, empty_bins_active
+    )
+    return {
+        "warehouse_id": str(wid),
+        "racks": {"total": total_racks, "active": active_racks},
+        "bins_all_racks": {"total": total_bins, "empty": empty_bins_all},
+        "bins_on_active_racks": {
+            "empty": empty_bins_active,
+            "reserved": reserved_bins_active,
+            "occupied": occupied_bins_active,
+            "blocked": blocked_bins_active,
+            "maintenance": maintenance_bins_active,
+        },
+    }

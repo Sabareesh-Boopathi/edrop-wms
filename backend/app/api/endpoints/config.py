@@ -96,5 +96,28 @@ def get_system_audit(
             'changes': rec.changes,
             'created_at': rec.created_at,
         }
+        # Optionally include actor name/role for UI without extra lookups
+        try:
+            from app.crud.crud_user import user as crud_user
+            actor = crud_user.get(db, id=rec.actor_user_id)
+            if actor:
+                data['actor_name'] = getattr(actor, 'name', None)
+                data['actor_role'] = getattr(actor, 'role', None)
+        except Exception:
+            pass
+        # Include entity_name for contact reveal events for better UX
+        try:
+            if rec.entity_type == 'vendor_contact_unmask' and rec.entity_id:
+                from app.crud.crud_vendor import vendor as crud_vendor
+                v = crud_vendor.get(db, id=rec.entity_id)
+                if v:
+                    data['entity_name'] = getattr(v, 'business_name', None)
+            elif rec.entity_type == 'customer_contact_unmask' and rec.entity_id:
+                from app.crud.crud_customer import customer as crud_customer
+                c = crud_customer.get(db, id=rec.entity_id)
+                if c:
+                    data['entity_name'] = getattr(c, 'name', None)
+        except Exception:
+            pass
         result.append(AuditLogSchema(**data))
     return result

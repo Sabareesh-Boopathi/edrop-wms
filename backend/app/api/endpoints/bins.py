@@ -9,6 +9,7 @@ from app.crud import crud_bin, crud_rack
 from app.schemas.bin import Bin, BinCreate, BinUpdate, BinCreateRequest
 from app.models.user import User
 from app.crud.crud_config import config as cfg
+from app.services.bin_code import build_bin_code as build_bin_code_svc
 
 router = APIRouter()
 
@@ -23,28 +24,8 @@ def list_bins(
         raise HTTPException(status_code=404, detail="Rack not found")
     return crud_bin.bin.get_by_rack(db, rack_id)
 
-def build_bin_code(db: Session, rack_id: uuid.UUID, stack_index: int, bin_index: int) -> str:
-        """Return canonical bin code.
-
-        Format: [<short>-]<RACKPREFIX><rack_seq>-SXXX-BXXX
-            - rack_seq extracted from trailing digits of rack.name, zero-padded to 3
-            - S / B parts are 1-based indices, zero-padded to 3
-        Ensures consistency even if legacy records used 1 or 2 digit padding.
-        """
-        rack = crud_rack.rack.get(db, id=rack_id)
-        if not rack:
-                raise HTTPException(status_code=404, detail="Rack not found")
-        wh_cfg = cfg.get_warehouse(db, str(rack.warehouse_id)) or {}
-        rack_prefix = (wh_cfg.get('rackPrefix') or 'R').upper()
-        short = (wh_cfg.get('shortCode') or '').strip().upper()
-        # Extract trailing digit sequence from rack name (supports non-padded historic names)
-        m = re.search(r"(\d+)$", str(rack.name or ''))
-        rack_seq = (str(int(m.group(1))) if m else '1').zfill(3)
-        # Use 1-based indices for display codes
-        s = str(int(stack_index) + 1).zfill(3)
-        b = str(int(bin_index) + 1).zfill(3)
-        core = f"{rack_prefix}{rack_seq}-S{s}-B{b}"
-        return f"{short}-{core}" if short else core
+def build_bin_code(db: Session, rack_id: uuid.UUID, stack_index: int, bin_index: int) -> str:  # backwards import path compatibility
+    return build_bin_code_svc(db, rack_id, stack_index, bin_index)
 
 @router.post("/racks/{rack_id}/bins", response_model=Bin)
 def create_bin(
@@ -68,6 +49,53 @@ def create_bin(
         quantity=bin_in.quantity,
     )
     return crud_bin.bin.create(db, obj_in=payload)
+
+@router.post("/racks/{rack_id}/bins:materialize")
+def materialize_bins(
+    rack_id: uuid.UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    """Create any missing Bin rows to fill the rack's stacks x bins_per_stack grid.
+
+    Returns a summary with counts and how many were created.
+    """
+    rack = crud_rack.rack.get(db, id=rack_id)
+    if not rack:
+        raise HTTPException(status_code=404, detail="Rack not found")
+    # Load existing coordinates for this rack
+    existing = crud_bin.bin.get_by_rack(db, rack_id)
+    coords = {(int(b.stack_index), int(b.bin_index)) for b in existing}
+    to_create = []
+    for s in range(int(rack.stacks or 0)):
+        for b in range(int(rack.bins_per_stack or 0)):
+            if (s, b) in coords:
+                continue
+            code = build_bin_code(db, rack_id, s, b)
+            to_create.append(BinCreate(
+                rack_id=rack_id,
+                stack_index=s,
+                bin_index=b,
+                code=code,
+                status="empty",
+                crate_id=None,
+                product_id=None,
+                store_product_id=None,
+                quantity=0,
+            ))
+    created = 0
+    for payload in to_create:
+        crud_bin.bin.create(db, obj_in=payload)
+        created += 1
+    # Summarize
+    total_expected = int((rack.stacks or 0) * (rack.bins_per_stack or 0))
+    return {
+        "rack_id": str(rack.id),
+        "rack_name": rack.name,
+        "expected": total_expected,
+        "existing": len(existing),
+        "created": created,
+    }
 
 @router.put("/bins/{bin_id}", response_model=Bin)
 def update_bin(
